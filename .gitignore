@@ -1,3 +1,6 @@
 .DS_Store
 .superpowers/
 work/
+.build/
+.swiftpm/
+Package.resolved
