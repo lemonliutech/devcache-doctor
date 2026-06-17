@@ -20,6 +20,7 @@ let package = Package(
         .executableTarget(
             name: "DevStorageDoctorApp",
             dependencies: ["DevStorageCore"],
+            exclude: ["Info.plist"],
             resources: [.process("Assets.xcassets")]
         ),
         .testTarget(
