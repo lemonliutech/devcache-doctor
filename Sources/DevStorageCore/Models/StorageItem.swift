@@ -1,4 +1,5 @@
-public struct StorageSubPath: Codable, Sendable, Equatable {
+public struct StorageSubPath: Codable, Sendable, Equatable, Identifiable {
+    public var id: String { path }
     public let path: String
     public let sizeBytes: UInt64?
 
