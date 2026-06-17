@@ -76,7 +76,7 @@ struct OverviewView: View {
 
     private var idleState: some View {
         VStack(spacing: Spacing.large) {
-            Image(systemName: "externaldrive.badge.magnifyingglass")
+            Image(systemName: "magnifyingglass.circle")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.textMuted)
             VStack(spacing: Spacing.small) {

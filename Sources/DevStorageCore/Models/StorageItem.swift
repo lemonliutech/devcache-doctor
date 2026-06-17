@@ -1,4 +1,4 @@
-public struct StorageItem: Codable, Sendable, Equatable {
+public struct StorageItem: Codable, Sendable, Equatable, Identifiable {
     public let id: String
     public let displayName: String
     public let path: String

@@ -126,7 +126,7 @@ struct ToolchainSectionView: View {
         case "Flutter / Dart / FVM": return "wind"
         case "CocoaPods":            return "shippingbox"
         case "Node / pnpm / npm":    return "network"
-        case "HarmonyOS / DevEco":   return "square.3.layers.3d"
+        case "HarmonyOS / DevEco":   return "square.stack.3d.up"
         default:                     return "folder"
         }
     }

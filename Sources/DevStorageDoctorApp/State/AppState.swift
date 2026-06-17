@@ -21,7 +21,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .overview:   return "gauge.with.dots.needle.bottom.50percent"
         case .xcodeIOS:   return "hammer"
-        case .android:    return "androidfill"
+        case .android:    return "square.grid.2x2"
         case .flutter:    return "wind"
         case .cocoapods:  return "shippingbox"
         case .node:       return "network"
