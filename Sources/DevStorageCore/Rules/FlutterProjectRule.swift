@@ -5,18 +5,16 @@ public struct FlutterProjectRule: ScanRule {
     public let displayName: String
     public let toolchain: String
     private let projectRoot: URL
-    private let fileManager: FileManager
 
-    public init(projectRoot: URL, fileManager: FileManager = .default) {
+    public init(projectRoot: URL) {
         self.id = "flutter-project"
         self.displayName = "Flutter project storage"
         self.toolchain = "Flutter / Dart / FVM"
         self.projectRoot = projectRoot
-        self.fileManager = fileManager
     }
 
     public func scan(measurer: FileSizeMeasurer) -> [StorageItem] {
-        guard fileManager.fileExists(atPath: projectRoot.appendingPathComponent("pubspec.yaml").path) else {
+        guard FileManager.default.fileExists(atPath: projectRoot.appendingPathComponent("pubspec.yaml").path) else {
             return [StorageItem(
                 id: "flutter-project-unsupported:\(projectRoot.path)",
                 displayName: "Flutter project",

@@ -65,6 +65,15 @@ final class AppState {
     var projectRoots: [URL] = []
     var lastScanDate: Date?
 
+    // Scan progress
+    var scanProgressCurrent: Int = 0
+    var scanProgressTotal: Int = 0
+    var scanningRuleName: String = ""
+
+    var scanProgress: Double {
+        scanProgressTotal > 0 ? Double(scanProgressCurrent) / Double(scanProgressTotal) : 0
+    }
+
     var selectedItems: [StorageItem] {
         results.filter { selectedItemIDs.contains($0.id) }
     }
@@ -93,6 +102,9 @@ final class AppState {
         scanPhase = .scanning
         results = []
         selectedItemIDs = []
+        scanProgressCurrent = 0
+        scanProgressTotal = 0
+        scanningRuleName = ""
 
         Task {
             let home = FileManager.default.homeDirectoryForCurrentUser
@@ -100,13 +112,26 @@ final class AppState {
                 homeDirectory: home,
                 projectRoots: projectRoots
             )
-            let scanner = DevelopmentStorageScanner(rules: rules)
-            let items = scanner.scan()
 
-            results = items
-            selectedItemIDs = Set(
-                items.filter { $0.defaultSelected && $0.status == .found }.map(\.id)
-            )
+            scanProgressTotal = rules.count
+
+            for (index, rule) in rules.enumerated() {
+                scanningRuleName = rule.displayName
+                scanProgressCurrent = index
+
+                // Run file I/O on background thread, yield back to main actor
+                let items = await Task.detached(priority: .userInitiated) {
+                    rule.scan(measurer: FileSizeMeasurer())
+                }.value
+
+                results.append(contentsOf: items)
+                for item in items where item.defaultSelected && item.status == .found {
+                    selectedItemIDs.insert(item.id)
+                }
+                scanProgressCurrent = index + 1
+            }
+
+            scanningRuleName = ""
             lastScanDate = Date()
             scanPhase = .done
         }

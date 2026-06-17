@@ -86,11 +86,25 @@ struct StorageItemRowView: View {
     private var expandedDetail: some View {
         VStack(alignment: .leading, spacing: 6) {
             detailRow("Path") {
-                Text(item.path)
-                    .font(.system(.caption, design: .monospaced))
+                HStack(spacing: Spacing.tight) {
+                    Text(item.path)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .lineLimit(2)
+                    Spacer()
+                    Button {
+                        NSWorkspace.shared.selectFile(item.path, inFileViewerRootedAtPath: "")
+                    } label: {
+                        Label("Show in Finder", systemImage: "arrow.right.circle")
+                            .labelStyle(.iconOnly)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .lineLimit(2)
+                    .help("Show in Finder")
+                    .disabled(!FileManager.default.fileExists(atPath: item.path))
+                }
             }
             detailRow("Toolchain") {
                 Text(item.toolchain)

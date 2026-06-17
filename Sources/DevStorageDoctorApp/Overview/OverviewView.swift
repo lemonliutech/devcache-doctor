@@ -5,12 +5,19 @@ struct OverviewView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Scan progress bar — only visible while scanning
+            if state.scanPhase == .scanning {
+                ScanProgressBarView()
+            }
+
             switch state.scanPhase {
             case .idle:
                 idleState
-            case .scanning:
-                scanningState
-            case .done:
+            case .scanning where state.results.isEmpty:
+                // Haven't received any results yet — show a minimal wait state
+                scanStartingState
+            case .scanning, .done:
+                // Show results as they stream in (scanning) or complete (done)
                 VStack(spacing: 0) {
                     DiskPressureSummaryView(results: state.results)
                         .padding(Spacing.medium)
@@ -42,14 +49,6 @@ struct OverviewView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-
-            if state.scanPhase == .scanning {
-                ToolbarItem(placement: .status) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .padding(.trailing, 4)
-                }
-            }
         }
     }
 
@@ -67,13 +66,12 @@ struct OverviewView: View {
         }
     }
 
-    private var scanningState: some View {
+    private var scanStartingState: some View {
         ContentUnavailableView {
-            Label("Scanning…", systemImage: "arrow.clockwise")
+            Label("Starting Scan…", systemImage: "magnifyingglass.circle")
         } description: {
-            Text("Measuring development storage.")
-        } actions: {
-            ProgressView()
+            Text(state.scanningRuleName.isEmpty ? "Preparing…" : state.scanningRuleName)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -86,5 +84,35 @@ struct OverviewView: View {
             Button("Retry") { state.runScan() }
                 .buttonStyle(.borderedProminent)
         }
+    }
+}
+
+// MARK: - Scan Progress Bar
+
+struct ScanProgressBarView: View {
+    @Environment(AppState.self) private var state
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ProgressView(value: state.scanProgress)
+                .progressViewStyle(.linear)
+                .animation(.linear(duration: 0.2), value: state.scanProgress)
+
+            HStack {
+                if !state.scanningRuleName.isEmpty {
+                    Text("Scanning \(state.scanningRuleName)…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(state.scanProgressCurrent) / \(state.scanProgressTotal)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        }
+        .padding(.horizontal, Spacing.medium)
+        .padding(.vertical, Spacing.small)
+        .background(.bar)
     }
 }
