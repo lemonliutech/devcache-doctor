@@ -24,6 +24,26 @@ public enum DefaultRuleFactory {
                 paths: [homeDirectory.appendingPathComponent("Library/Developer/Xcode/NewDerivedData")]
             ),
             KnownDirectoryRule(
+                id: "xcode-archives",
+                displayName: "Xcode Archives",
+                toolchain: "Xcode / iOS",
+                category: .packageOutput,
+                riskLevel: .manualReview,
+                defaultSelectedWhenFound: false,
+                explanation: "Archived builds may be needed for App Store submission or crash symbolication. Review before deleting.",
+                paths: [homeDirectory.appendingPathComponent("Library/Developer/Xcode/Archives")]
+            ),
+            KnownDirectoryRule(
+                id: "ios-simulator-runtimes",
+                displayName: "iOS Simulator runtimes",
+                toolchain: "Xcode / iOS",
+                category: .sdkRuntime,
+                riskLevel: .high,
+                defaultSelectedWhenFound: false,
+                explanation: "Simulator runtimes need to be downloaded again from Xcode.",
+                paths: [homeDirectory.appendingPathComponent("Library/Developer/CoreSimulator/Cryptex")]
+            ),
+            KnownDirectoryRule(
                 id: "gradle-caches",
                 displayName: "Gradle caches",
                 toolchain: "Android / Gradle",

@@ -153,14 +153,14 @@ struct PlainDisclosureStyle: DisclosureGroupStyle {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                withAnimation(.snappy) {
+                withAnimation(.easeInOut(duration: 0.18)) {
                     configuration.isExpanded.toggle()
                 }
             }
 
             if configuration.isExpanded {
                 configuration.content
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity)
             }
         }
     }
