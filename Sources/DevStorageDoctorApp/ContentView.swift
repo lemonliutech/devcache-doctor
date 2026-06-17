@@ -27,7 +27,7 @@ struct ContentView: View {
             case .overview:
                 OverviewView()
             case .settings:
-                SettingsPlaceholderView()
+                SettingsView()
             case .reports:
                 ReportsPlaceholderView()
             default:
@@ -74,17 +74,6 @@ struct ToolchainDetailView: View {
 }
 
 // MARK: - Placeholders
-
-struct SettingsPlaceholderView: View {
-    var body: some View {
-        ContentUnavailableView(
-            "Settings",
-            systemImage: "gearshape",
-            description: Text("Coming soon.")
-        )
-        .navigationTitle("Settings")
-    }
-}
 
 struct ReportsPlaceholderView: View {
     var body: some View {
