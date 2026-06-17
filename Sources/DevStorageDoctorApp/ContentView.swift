@@ -26,6 +26,8 @@ struct ContentView: View {
             switch sidebarSelection ?? .overview {
             case .overview:
                 OverviewView()
+            case .exceptions:
+                ExceptionsView()
             case .settings:
                 SettingsView()
             case .reports:

@@ -13,6 +13,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case node        = "Node / pnpm / npm"
     case harmonyos   = "HarmonyOS / DevEco"
     case manual      = "Manual Review"
+    case exceptions  = "Exceptions"
     case reports     = "Reports"
     case settings    = "Settings"
 
@@ -27,9 +28,10 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .cocoapods:  return "shippingbox"
         case .node:       return "network"
         case .harmonyos:  return "cpu"
-        case .manual:     return "questionmark.folder"
-        case .reports:    return "doc.text"
-        case .settings:   return "gearshape"
+        case .manual:      return "questionmark.folder"
+        case .exceptions:  return "exclamationmark.triangle"
+        case .reports:     return "doc.text"
+        case .settings:    return "gearshape"
         }
     }
 
