@@ -1,5 +1,7 @@
 import Foundation
 
+/// Scans a single explicitly configured Flutter project root,
+/// returning one StorageItem per found artifact type.
 public struct FlutterProjectRule: ScanRule {
     public let id: String
     public let displayName: String
@@ -8,58 +10,42 @@ public struct FlutterProjectRule: ScanRule {
 
     public init(projectRoot: URL) {
         self.id = "flutter-project:\(projectRoot.path)"
-        self.displayName = projectRoot.lastPathComponent
+        self.displayName = "Flutter \(projectRoot.lastPathComponent)"
         self.toolchain = "Flutter / Dart / FVM"
         self.projectRoot = projectRoot
     }
 
     public func scan(measurer: FileSizeMeasurer) -> [StorageItem] {
         guard FileManager.default.fileExists(atPath: projectRoot.appendingPathComponent("pubspec.yaml").path) else {
-            return []   // Discovery rule already filters non-Flutter dirs; skip silently
+            return []
         }
 
-        let candidates: [(name: String, url: URL, category: StorageCategory, risk: RiskLevel)] = [
-            ("build",              projectRoot.appendingPathComponent("build"),              .buildArtifact,   .medium),
-            (".dart_tool",         projectRoot.appendingPathComponent(".dart_tool"),         .buildArtifact,   .medium),
-            ("ios/Pods",           projectRoot.appendingPathComponent("ios/Pods"),           .dependencyStore, .medium),
-            ("android/.gradle",    projectRoot.appendingPathComponent("android/.gradle"),    .buildArtifact,   .medium),
-            ("android/app/build",  projectRoot.appendingPathComponent("android/app/build"), .buildArtifact,   .medium),
-            ("ohos/build",         projectRoot.appendingPathComponent("ohos/build"),         .buildArtifact,   .medium),
-            ("harmonyos/build",    projectRoot.appendingPathComponent("harmonyos/build"),    .buildArtifact,   .medium),
-            ("build/app/outputs",  projectRoot.appendingPathComponent("build/app/outputs"), .packageOutput,   .manualReview),
+        let candidates: [(name: String, rel: String, category: StorageCategory, risk: RiskLevel)] = [
+            ("build/",             "build",             .buildArtifact,   .medium),
+            (".dart_tool/",        ".dart_tool",        .buildArtifact,   .medium),
+            ("ios/Pods/",          "ios/Pods",          .dependencyStore, .medium),
+            ("android/.gradle/",   "android/.gradle",   .buildArtifact,   .medium),
+            ("android/app/build/", "android/app/build", .buildArtifact,   .medium),
+            ("ohos/build/",        "ohos/build",        .buildArtifact,   .medium),
+            ("build/app/outputs/", "build/app/outputs", .packageOutput,   .manualReview),
         ]
 
-        var totalBytes: UInt64 = 0
-        var foundNames: [String] = []
-        var highestRisk: RiskLevel = .low
-        var hasPackageOutput = false
-
-        for candidate in candidates {
-            if case .success(let size) = measurer.measure(url: candidate.url) {
-                totalBytes += size
-                foundNames.append(candidate.name)
-                if candidate.risk == .manualReview { hasPackageOutput = true }
-                else if highestRisk == .low { highestRisk = candidate.risk }
-            }
+        return candidates.compactMap { name, rel, category, risk in
+            let url = projectRoot.appendingPathComponent(rel)
+            guard case .success(let size) = measurer.measure(url: url) else { return nil }
+            return StorageItem(
+                id: "flutter-project:\(url.path)",
+                displayName: "\(projectRoot.lastPathComponent) / \(name)",
+                path: url.path,
+                category: category,
+                toolchain: toolchain,
+                sizeBytes: size,
+                riskLevel: risk,
+                status: .found,
+                defaultSelected: false,
+                explanation: projectRoot.lastPathComponent,
+                exception: nil
+            )
         }
-
-        guard !foundNames.isEmpty else { return [] }
-
-        let riskLevel: RiskLevel = hasPackageOutput && foundNames.count == 1 ? .manualReview : highestRisk
-        let artifactList = foundNames.joined(separator: " · ")
-
-        return [StorageItem(
-            id: "flutter-project:\(projectRoot.path)",
-            displayName: projectRoot.lastPathComponent,
-            path: projectRoot.path,
-            category: hasPackageOutput && foundNames.count == 1 ? .packageOutput : .buildArtifact,
-            toolchain: toolchain,
-            sizeBytes: totalBytes,
-            riskLevel: riskLevel,
-            status: .found,
-            defaultSelected: false,
-            explanation: artifactList,
-            exception: nil
-        )]
     }
 }
