@@ -1,4 +1,4 @@
-public struct ScanException: Codable, Sendable, Equatable {
+public struct ScanException: Error, Codable, Sendable, Equatable {
     public enum ExceptionType: String, Codable, Sendable {
         case permissionDenied = "PermissionDenied"
         case pathNotFound = "PathNotFound"
