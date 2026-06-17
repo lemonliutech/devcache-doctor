@@ -4,7 +4,7 @@
 
 **Product name:** DevCache Doctor
 
-**Theme:** 多端开发者 macOS 缓存清理工具
+**Theme:** macOS cache cleanup tool for cross-platform developers
 
 **Positioning:** A macOS developer-environment cache diagnostic and cleanup tool for cross-platform mobile developers. It helps users understand disk usage, classify cleanup risk, generate an auditable cleanup plan, and safely recover disk space.
 
@@ -77,7 +77,36 @@ When cleanup fails, I want to see the exact exception and suggested fix, so that
 5. **No destructive guessing**
    If the app cannot classify a directory safely, it must not delete it automatically.
 
-## 6. MVP Scope
+## 6. Product Vocabulary
+
+Use consistent English product language across the app and documentation.
+
+### Product Category
+
+**macOS cache cleanup tool for cross-platform developers**
+
+### Primary Terms
+
+- **Scan:** Read-only disk analysis. A scan never deletes files.
+- **Cache Item:** A detected directory, file group, or tool-managed store that may be cleanable.
+- **Cleanup Rule:** The app's known strategy for analyzing and optionally cleaning a cache item.
+- **Cleanup Plan:** A user-reviewable list of actions generated from selected cache items.
+- **Protected Item:** A detected item that the app refuses to delete because it appears active or risky.
+- **Manual Review:** A large item that is useful to surface but outside automatic cleanup.
+- **Exception:** A named scan or cleanup failure with path, operation, cause, and suggested next step.
+
+### Product Voice
+
+The product should avoid words like "junk", "trash", "boost", or "deep clean". Preferred language:
+
+- "recover disk space"
+- "cleanup plan"
+- "rebuild cost"
+- "protected because active"
+- "manual review required"
+- "cleanup failed with exception"
+
+## 7. MVP Scope
 
 ### Xcode / iOS
 
@@ -180,7 +209,7 @@ Included as analysis, not automatic cleanup:
 - project source directories
 - large application data directories such as Notion, Lark, browsers, or IDE workspaces
 
-## 7. Risk Model
+## 8. Risk Model
 
 ### Low Risk
 
@@ -229,7 +258,7 @@ Examples:
 - user documents
 - app databases
 
-## 8. Exception Catalog
+## 9. Exception Catalog
 
 The app must enumerate exceptions instead of silently falling back.
 
@@ -347,7 +376,7 @@ Required output:
 - size
 - reason it is not automatically cleanable
 
-## 9. Core User Flow
+## 10. Core User Flow
 
 1. User launches app.
 2. App performs a read-only scan.
@@ -360,7 +389,173 @@ Required output:
 9. App executes item-by-item.
 10. App shows release estimate, successes, skipped items, failures, and exceptions.
 
-## 10. Non-Goals
+## 11. User Stories
+
+### US-1: Understand Disk Pressure
+
+As a cross-platform developer, I want to see how much disk space is used by developer tooling, so that I can decide whether cleanup is worth doing.
+
+Acceptance criteria:
+
+- The overview shows total available disk space.
+- The overview separates developer caches from manual-only large data.
+- The overview shows low-risk, medium-risk, and manual-review totals.
+
+### US-2: Clean Low-Risk Caches
+
+As a developer, I want low-risk caches to be selected by default, so that I can quickly recover space without reading every item.
+
+Acceptance criteria:
+
+- Low-risk items are selected by default.
+- The app explains that deletion may slow the next build or launch.
+- The cleanup plan can be reviewed before execution.
+
+### US-3: Protect Active Toolchains
+
+As a developer working on active projects, I want the app to protect current SDKs and running simulators, so that cleanup does not break my current workflow.
+
+Acceptance criteria:
+
+- Booted simulators are not selected.
+- Current FVM versions are not selected.
+- Unknown SDK directories are manual review only.
+- Protected items show the reason they are protected.
+
+### US-4: Review Medium-Risk Cleanup
+
+As a developer, I want medium-risk items to be opt-in, so that I do not accidentally trigger long redownloads.
+
+Acceptance criteria:
+
+- Medium-risk items are unselected by default.
+- Each item shows likely rebuild or redownload cost.
+- Confirmation mentions network or dependency restore requirements.
+
+### US-5: Diagnose Failed Cleanup
+
+As a developer, I want cleanup failures to be named and actionable, so that I can resolve permission or process issues.
+
+Acceptance criteria:
+
+- Every failed scan or cleanup item has an exception type.
+- The report includes path, operation, and suggested next action.
+- Partial cleanup is shown explicitly.
+
+## 12. Scanner Rule Taxonomy
+
+Each cleanup rule should be modeled as data, not hard-coded only in UI.
+
+Rule fields:
+
+- id
+- display name
+- toolchain group
+- default paths
+- detection method
+- cleanup method
+- risk level
+- default selection state
+- active protection checks
+- rebuild cost explanation
+- possible exceptions
+
+Example:
+
+```text
+id: xcode-derived-data
+displayName: Xcode DerivedData
+toolchain: Xcode / iOS
+paths:
+  - ~/Library/Developer/Xcode/DerivedData
+  - ~/Library/Developer/Xcode/NewDerivedData
+risk: Low
+defaultSelected: true
+cleanupMethod: remove directory contents
+impact: First Xcode build may be slower.
+exceptions: PermissionDenied, FileInUse, PartialCleanup
+```
+
+## 13. Privacy And Safety
+
+The app should be local-first.
+
+MVP requirements:
+
+- Do not upload paths, directory names, package names, or scan results.
+- Do not collect analytics in MVP.
+- Do not require network access for scanning.
+- Do not require elevated privileges for normal scan.
+- Ask for additional macOS permissions only when a path cannot be read.
+- Never delete outside an explicit cleanup rule.
+
+Sensitive path handling:
+
+- Full paths may be displayed locally.
+- Exported reports should include full paths by default because they are debugging artifacts.
+- A later version may add "redact home directory" for shareable reports.
+
+## 14. MVP Milestones
+
+### Milestone 1: Read-Only Scanner
+
+Goal:
+
+Produce a grouped scan report with paths, sizes, missing-path notices, and permission exceptions.
+
+Exit criteria:
+
+- No deletion is possible.
+- Xcode, Simulator, Gradle, Pub, FVM, pnpm, CocoaPods, and manual-only large directories can be measured.
+
+### Milestone 2: Risk Classification
+
+Goal:
+
+Classify scan results and explain each classification.
+
+Exit criteria:
+
+- Risk badge and explanation exist for every cache item.
+- Protected items are marked and excluded from selection.
+
+### Milestone 3: Cleanup Plan
+
+Goal:
+
+Generate an auditable plan from selected items.
+
+Exit criteria:
+
+- Plan can be copied.
+- Plan includes commands or cleanup methods.
+- Plan includes exceptions that may occur.
+
+### Milestone 4: Controlled Execution
+
+Goal:
+
+Execute selected low-risk and explicitly confirmed medium-risk cleanup.
+
+Exit criteria:
+
+- Execution is item-by-item.
+- Failure of one item does not hide later results.
+- Final report includes success, skipped, partial, and failed states.
+
+### Milestone 5: Native macOS MVP
+
+Goal:
+
+Ship a native macOS app shell around scan, plan, execution, and report flows.
+
+Exit criteria:
+
+- The app can be used without terminal commands.
+- Final report is copyable.
+- Settings support custom scan paths.
+
+## 15. Non-Goals
 
 The MVP will not:
 
@@ -373,7 +568,7 @@ The MVP will not:
 - hide command failures
 - optimize app launch agents or system services
 
-## 11. Success Metrics
+## 16. Success Metrics
 
 ### Functional Metrics
 
@@ -387,7 +582,7 @@ The MVP will not:
 - User can complete low-risk cleanup in under three minutes.
 - User can export or copy the cleanup report for troubleshooting.
 
-## 12. Open Questions
+## 17. Open Questions
 
 - Should the MVP be a full window app only, or include a menu bar companion?
 - Should the app support scheduled monitoring in v1, or keep it manual?
