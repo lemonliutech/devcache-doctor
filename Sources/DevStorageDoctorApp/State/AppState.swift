@@ -120,7 +120,7 @@ final class AppState {
             if item.subPaths.isEmpty {
                 total += item.sizeBytes ?? 0
             } else {
-                let selected = selectedSubPaths[item.id] ?? Set(item.subPaths.map(\.path))
+                let selected = selectedSubPaths[item.id] ?? []
                 total += item.subPaths
                     .filter { selected.contains($0.path) }
                     .compactMap(\.sizeBytes)
@@ -144,15 +144,15 @@ final class AppState {
             selectedSubPaths.removeValue(forKey: item.id)
         } else {
             selectedItemIDs.insert(item.id)
-            // Default: all sub-paths selected
+            // Default: nothing selected — user picks sub-paths explicitly
             if !item.subPaths.isEmpty {
-                selectedSubPaths[item.id] = Set(item.subPaths.map(\.path))
+                selectedSubPaths[item.id] = []
             }
         }
     }
 
     func toggleSubPath(_ subPath: StorageSubPath, in item: StorageItem) {
-        var selected = selectedSubPaths[item.id] ?? Set(item.subPaths.map(\.path))
+        var selected = selectedSubPaths[item.id] ?? []
         if selected.contains(subPath.path) {
             selected.remove(subPath.path)
         } else {
@@ -160,8 +160,25 @@ final class AppState {
         }
         selectedSubPaths[item.id] = selected
 
-        // Keep parent selected if any sub-path is selected; deselect if none
         if selected.isEmpty {
+            selectedItemIDs.remove(item.id)
+            selectedSubPaths.removeValue(forKey: item.id)
+        } else {
+            selectedItemIDs.insert(item.id)
+        }
+    }
+
+    func selectAllSubPaths(for item: StorageItem) {
+        selectedSubPaths[item.id] = Set(item.subPaths.map(\.path))
+        selectedItemIDs.insert(item.id)
+    }
+
+    func invertSubPathSelection(for item: StorageItem) {
+        let current = selectedSubPaths[item.id] ?? []
+        let all = Set(item.subPaths.map(\.path))
+        let inverted = all.subtracting(current)
+        selectedSubPaths[item.id] = inverted
+        if inverted.isEmpty {
             selectedItemIDs.remove(item.id)
             selectedSubPaths.removeValue(forKey: item.id)
         } else {
@@ -180,7 +197,7 @@ final class AppState {
     /// Build a flat list of paths to actually delete, respecting sub-path selections.
     func resolvedCleanupPaths(for item: StorageItem) -> [String] {
         if item.subPaths.isEmpty { return [item.path] }
-        let selected = selectedSubPaths[item.id] ?? Set(item.subPaths.map(\.path))
+        let selected = selectedSubPaths[item.id] ?? []
         return item.subPaths.filter { selected.contains($0.path) }.map(\.path)
     }
 
