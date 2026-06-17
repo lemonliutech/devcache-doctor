@@ -14,16 +14,16 @@
 
 ## v0.2 Prototype
 
-- [ ] Choose macOS implementation stack
-- [ ] Build read-only scanner prototype
-- [ ] Detect Xcode and iOS Simulator cache sizes
-- [ ] Detect Android and Gradle cache sizes
-- [ ] Detect Flutter, Dart, and FVM cache sizes
-- [ ] Detect Flutter project build artifacts inside selected project roots
-- [ ] Detect temporary mobile package outputs inside selected project roots
-- [ ] Detect Node, pnpm, npm, and CocoaPods cache sizes
-- [ ] Detect HarmonyOS / DevEco cache candidates
-- [ ] Produce grouped scan report
+- [x] Choose macOS implementation stack
+- [x] Build read-only scanner prototype
+- [x] Detect Xcode and iOS Simulator cache sizes
+- [x] Detect Android and Gradle cache sizes
+- [x] Detect Flutter, Dart, and FVM cache sizes
+- [x] Detect Flutter project build artifacts inside selected project roots
+- [x] Detect temporary mobile package outputs inside selected project roots
+- [x] Detect Node, pnpm, npm, and CocoaPods cache sizes
+- [x] Detect HarmonyOS / DevEco cache candidates
+- [x] Produce grouped scan report
 
 ## v0.3 Cleanup Planning
 

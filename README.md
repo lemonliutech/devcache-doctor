@@ -26,6 +26,16 @@ The product goal is not to be a generic junk cleaner. It should help developers 
 Scan -> Explain -> Risk Grade -> Generate Plan -> Confirm -> Execute -> Report Exceptions
 ```
 
+## Scanner Prototype
+
+The v0.2 prototype exposes a read-only scanner CLI:
+
+```bash
+swift run devstorage-scan --project-root /path/to/flutter/project
+```
+
+The scanner prints JSON results. It does not delete files.
+
 ## MVP Focus
 
 - Read-only scan first
