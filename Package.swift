@@ -19,7 +19,8 @@ let package = Package(
         ),
         .executableTarget(
             name: "DevStorageDoctorApp",
-            dependencies: ["DevStorageCore"]
+            dependencies: ["DevStorageCore"],
+            resources: [.process("Assets.xcassets")]
         ),
         .testTarget(
             name: "DevStorageCoreTests",
