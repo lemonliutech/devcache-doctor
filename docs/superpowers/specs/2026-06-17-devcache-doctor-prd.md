@@ -209,7 +209,205 @@ Included as analysis, not automatic cleanup:
 - project source directories
 - large application data directories such as Notion, Lark, browsers, or IDE workspaces
 
-## 8. Risk Model
+## 8. Scope Completeness Assessment
+
+The MVP scope is sufficient for the first target segment: cross-platform mobile developers using Xcode, Android, Flutter, Node, CocoaPods, and HarmonyOS tooling.
+
+It is not yet complete for the broader product category, "macOS cache cleanup tool for cross-platform developers." The broader category should eventually include container runtimes, IDE caches, package managers, language ecosystems, and build-system caches beyond mobile app development.
+
+### Covered Well In MVP
+
+- iOS and Xcode cache pressure
+- iOS Simulator cleanup and unavailable device detection
+- Android SDK and Gradle cache pressure
+- Flutter, Dart, and FVM cache pressure
+- CocoaPods cache and repo pressure
+- Node package cache pressure through npm and pnpm
+- HarmonyOS / DevEco early support
+- Manual review for source projects, virtual machines, Docker volumes, and large app data
+
+### Partially Covered
+
+- Docker is only manual-review in MVP, not cache-aware.
+- `node_modules` is detected but never automatically cleaned.
+- Android SDK cleanup is size-aware but not yet version-usage-aware.
+- HarmonyOS / DevEco rules are expected to start conservative because directory layouts may vary.
+- Project-aware scanning exists as a future direction but is not required for the first scanner.
+
+### Missing From MVP
+
+These are intentionally outside MVP but important for later versions:
+
+- Homebrew caches and old downloads
+- Docker, Colima, Lima, and container image/build caches
+- JetBrains IDE caches
+- VS Code extension caches and workspace storage
+- Swift Package Manager caches
+- Maven, Gradle wrapper distributions, and Kotlin daemon caches beyond basic Gradle directories
+- Python pip, uv, poetry, conda, and virtual environment analysis
+- Ruby Bundler and CocoaPods derived integration artifacts
+- Rust Cargo registry and target directories
+- Go module cache and build cache
+- Bun and Yarn caches
+- Bazel, Buck, CMake, ccache, and other build-system caches
+- React Native specific caches, Metro cache, Watchman state
+- Unity, Unreal, and game-development build caches
+- AI development tool caches, model downloads, and local sandbox/runtime caches
+- Time Machine local snapshots and APFS purgeable-space explanation
+
+### Scope Principle
+
+The product should not try to support every cache type by adding one-off delete commands. Each new area should be added only when the app can provide:
+
+- detection confidence
+- size measurement
+- risk classification
+- active-use protection
+- rebuild or redownload explanation
+- named exception handling
+- a safe default selection state
+
+## 9. Expansion Strategy
+
+Expansion should happen in layers, from highest-confidence developer caches to broader ecosystem support.
+
+### Phase 1: Mobile Cross-Platform Core
+
+Goal:
+
+Ship a reliable tool for the original target user.
+
+Includes:
+
+- Xcode / iOS
+- Android / Gradle
+- Flutter / Dart / FVM
+- CocoaPods
+- Node npm/pnpm
+- HarmonyOS / DevEco conservative detection
+- manual-only large directory analysis
+
+Why this phase first:
+
+These categories match the user's real disk-pressure evidence and create a differentiated product compared with Xcode-only cleaners.
+
+### Phase 2: Developer Ecosystem Expansion
+
+Goal:
+
+Cover common macOS developer caches beyond mobile app projects.
+
+Candidate additions:
+
+- Homebrew cache cleanup
+- Swift Package Manager
+- VS Code and JetBrains caches
+- Go, Rust, Python, Ruby, Java/Maven cache families
+- Yarn and Bun caches
+- CMake, ccache, and other local build caches
+
+Design requirement:
+
+Each ecosystem should enter as a rule pack with explicit risk labels and rebuild-cost copy, not as a hard-coded UI special case.
+
+### Phase 3: Container And Runtime Expansion
+
+Goal:
+
+Help users understand container and runtime disk usage without accidentally deleting critical state.
+
+Candidate additions:
+
+- Docker image, build cache, and volume analysis
+- Colima and Lima disk image analysis
+- Kubernetes local cluster cache analysis
+- VM image detection and migration suggestions
+
+MVP stance:
+
+Docker volumes and VM images remain manual-only until the app can distinguish disposable build cache from user data.
+
+### Phase 4: Project-Aware Cleanup
+
+Goal:
+
+Protect active development environments by scanning project roots and inferring dependencies.
+
+Project signals:
+
+- `.fvmrc`
+- `pubspec.yaml`
+- `ios/Podfile`
+- `android/gradle`
+- `package.json`
+- `pnpm-lock.yaml`
+- `oh-package.json5`
+- `Package.swift`
+- `go.mod`
+- `Cargo.toml`
+- `pyproject.toml`
+
+Benefits:
+
+- protect active SDK versions
+- identify stale build directories
+- distinguish current package caches from unused versions
+- make medium-risk cleanup more trustworthy
+
+### Phase 5: Rule Packs And Extensibility
+
+Goal:
+
+Allow advanced users and teams to add or disable cleanup rules without changing core app code.
+
+Rule pack requirements:
+
+- declarative paths and detection commands
+- risk level
+- cleanup command or method
+- active-use checks
+- exception mapping
+- dry-run support
+- versioned rule metadata
+
+Potential format:
+
+```yaml
+id: homebrew-cache
+name: Homebrew Cache
+group: Package Managers
+risk: Medium
+detect:
+  paths:
+    - ~/Library/Caches/Homebrew
+clean:
+  command: brew cleanup --prune=all
+exceptions:
+  - ToolMissing
+  - ToolCommandFailed
+  - PermissionDenied
+```
+
+### Phase 6: Monitoring And Automation
+
+Goal:
+
+Move from one-off cleanup to ongoing developer-environment maintenance.
+
+Potential features:
+
+- menu bar disk pressure monitor
+- cache growth since last scan
+- weekly read-only report
+- team-shared rule packs
+- cleanup history and trends
+- optional reminders, not automatic deletion
+
+Automation rule:
+
+The app may automate scanning, but cleanup should remain user-confirmed unless a user explicitly enables a narrow low-risk rule.
+
+## 10. Risk Model
 
 ### Low Risk
 
@@ -258,7 +456,7 @@ Examples:
 - user documents
 - app databases
 
-## 9. Exception Catalog
+## 11. Exception Catalog
 
 The app must enumerate exceptions instead of silently falling back.
 
@@ -376,7 +574,7 @@ Required output:
 - size
 - reason it is not automatically cleanable
 
-## 10. Core User Flow
+## 12. Core User Flow
 
 1. User launches app.
 2. App performs a read-only scan.
@@ -389,7 +587,7 @@ Required output:
 9. App executes item-by-item.
 10. App shows release estimate, successes, skipped items, failures, and exceptions.
 
-## 11. User Stories
+## 13. User Stories
 
 ### US-1: Understand Disk Pressure
 
@@ -442,7 +640,7 @@ Acceptance criteria:
 - The report includes path, operation, and suggested next action.
 - Partial cleanup is shown explicitly.
 
-## 12. Scanner Rule Taxonomy
+## 14. Scanner Rule Taxonomy
 
 Each cleanup rule should be modeled as data, not hard-coded only in UI.
 
@@ -476,7 +674,7 @@ impact: First Xcode build may be slower.
 exceptions: PermissionDenied, FileInUse, PartialCleanup
 ```
 
-## 13. Privacy And Safety
+## 15. Privacy And Safety
 
 The app should be local-first.
 
@@ -495,7 +693,7 @@ Sensitive path handling:
 - Exported reports should include full paths by default because they are debugging artifacts.
 - A later version may add "redact home directory" for shareable reports.
 
-## 14. MVP Milestones
+## 16. MVP Milestones
 
 ### Milestone 1: Read-Only Scanner
 
@@ -555,7 +753,7 @@ Exit criteria:
 - Final report is copyable.
 - Settings support custom scan paths.
 
-## 15. Non-Goals
+## 17. Non-Goals
 
 The MVP will not:
 
@@ -564,11 +762,13 @@ The MVP will not:
 - delete user projects automatically
 - delete virtual machines automatically
 - delete Docker volumes automatically
+- clean Homebrew, Docker, JetBrains, VS Code, language package managers, or build-system caches in the first release unless a rule is explicitly added
+- run scheduled cleanup automatically
 - bypass macOS permission controls
 - hide command failures
 - optimize app launch agents or system services
 
-## 16. Success Metrics
+## 18. Success Metrics
 
 ### Functional Metrics
 
@@ -582,9 +782,9 @@ The MVP will not:
 - User can complete low-risk cleanup in under three minutes.
 - User can export or copy the cleanup report for troubleshooting.
 
-## 17. Open Questions
+## 19. Open Questions
 
 - Should the MVP be a full window app only, or include a menu bar companion?
 - Should the app support scheduled monitoring in v1, or keep it manual?
 - Should project-aware scanning require selecting project roots, or infer them from recent IDE/project folders?
-- Should Docker be in MVP as manual-only analysis or postponed entirely?
+- Which expansion pack should come first after mobile cross-platform core: Homebrew/IDE caches, Docker/containers, or language ecosystems?

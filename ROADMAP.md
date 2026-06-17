@@ -44,3 +44,14 @@
 - [ ] Project-aware scanning
 - [ ] Menu bar disk pressure monitor
 - [ ] Release packaging
+
+## v1.x Expansion Tracks
+
+- [ ] Homebrew and package-manager cache rule pack
+- [ ] IDE cache rule pack for VS Code and JetBrains tools
+- [ ] Language ecosystem rule packs for Go, Rust, Python, Ruby, Java, SwiftPM, Yarn, and Bun
+- [ ] Container/runtime analysis for Docker, Colima, Lima, and local Kubernetes
+- [ ] Build-system cache rules for Bazel, CMake, ccache, Metro, Watchman, Unity, and Unreal
+- [ ] Project-aware protection based on repository manifests and lockfiles
+- [ ] Declarative rule-pack system for team-specific cleanup rules
+- [ ] Menu bar monitoring and scheduled read-only reports
