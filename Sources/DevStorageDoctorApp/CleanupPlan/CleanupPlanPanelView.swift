@@ -5,7 +5,7 @@ struct CleanupPlanPanelView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             if state.selectedItems.isEmpty {
                 emptyState
             } else {
@@ -29,65 +29,93 @@ struct CleanupPlanPanelView: View {
     // MARK: - Plan
 
     private var planContent: some View {
-        List {
-            Section("Recovery Estimate") {
-                LabeledContent {
-                    Text(state.estimatedRecoveryBytes.formatted(.byteCount(style: .file)))
-                        .fontWeight(.semibold)
-                        .monospacedDigit()
-                        .foregroundStyle(.green)
-                } label: {
-                    Text("\(state.selectedItems.count) items")
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.base) {
+
+                    // Recovery estimate
+                    GroupBox("Recovery Estimate") {
+                        VStack(spacing: Spacing.tight) {
+                            HStack {
+                                Text("Items selected")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text("\(state.selectedItems.count)")
+                                    .font(.callout)
+                                    .monospacedDigit()
+                            }
+                            Divider()
+                            HStack {
+                                Text("Recoverable space")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text(state.estimatedRecoveryBytes.formatted(.byteCount(style: .file)))
+                                    .font(.callout)
+                                    .fontWeight(.semibold)
+                                    .monospacedDigit()
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+
+                    // Risk breakdown
+                    let low    = state.selectedItems.filter { $0.riskLevel == .low }.count
+                    let medium = state.selectedItems.filter { $0.riskLevel == .medium }.count
+                    let high   = state.selectedItems.filter { $0.riskLevel == .high }.count
+
+                    if low > 0 || medium > 0 || high > 0 {
+                        GroupBox("Risk Breakdown") {
+                            VStack(spacing: Spacing.tight) {
+                                if low > 0    { riskRow(label: "Low",    count: low,    color: .riskLow) }
+                                if medium > 0 { riskRow(label: "Medium", count: medium, color: .riskMedium) }
+                                if high > 0   { riskRow(label: "High",   count: high,   color: .riskHigh) }
+                            }
+                        }
+                    }
+
+                    // Excluded items note
+                    let excluded = state.results.filter {
+                        $0.riskLevel == .protected || $0.category == .packageOutput
+                    }.count
+
+                    if excluded > 0 {
+                        Label(
+                            "\(excluded) item\(excluded == 1 ? "" : "s") excluded (protected)",
+                            systemImage: "lock"
+                        )
+                        .font(.caption)
                         .foregroundStyle(.secondary)
+                        .padding(.top, Spacing.tight)
+                    }
                 }
+                .padding(Spacing.medium)
             }
 
-            Section("Risk Breakdown") {
-                let low    = state.selectedItems.filter { $0.riskLevel == .low }.count
-                let medium = state.selectedItems.filter { $0.riskLevel == .medium }.count
-                let high   = state.selectedItems.filter { $0.riskLevel == .high }.count
+            Divider()
 
-                if low > 0    { riskRow(label: "Low",    count: low,    color: .riskLow) }
-                if medium > 0 { riskRow(label: "Medium", count: medium, color: .riskMedium) }
-                if high > 0   { riskRow(label: "High",   count: high,   color: .riskHigh) }
+            // Generate Plan — always visible at the bottom
+            Button {
+                // TODO: navigate to cleanup plan screen
+            } label: {
+                Label("Generate Plan", systemImage: "list.bullet.clipboard")
+                    .frame(maxWidth: .infinity)
             }
-
-            let excluded = state.results.filter {
-                $0.riskLevel == .protected || $0.category == .packageOutput
-            }.count
-
-            if excluded > 0 {
-                Section {
-                    Label(
-                        "\(excluded) item\(excluded == 1 ? "" : "s") excluded",
-                        systemImage: "lock"
-                    )
-                    .foregroundStyle(.secondary)
-                    .font(.callout)
-                }
-            }
-
-            Section {
-                Button {
-                    // TODO: navigate to cleanup plan screen
-                } label: {
-                    Label("Generate Plan", systemImage: "list.bullet.clipboard")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(state.selectedItems.isEmpty)
-            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(Spacing.medium)
         }
-        .listStyle(.sidebar)
     }
 
     private func riskRow(label: String, count: Int, color: Color) -> some View {
-        LabeledContent {
+        HStack {
+            Label(label, systemImage: "circle.fill")
+                .foregroundStyle(color)
+                .font(.callout)
+            Spacer()
             Text("\(count)")
                 .monospacedDigit()
-                .foregroundStyle(color)
-        } label: {
-            Label(label, systemImage: "circle.fill")
                 .foregroundStyle(color)
                 .font(.callout)
         }

@@ -19,7 +19,7 @@ struct OverviewView: View {
             case .scanning, .done:
                 // Show results as they stream in (scanning) or complete (done)
                 VStack(spacing: 0) {
-                    DiskPressureSummaryView(results: state.results)
+                    DiskPressureSummaryView(results: state.results, lastScanDate: state.lastScanDate)
                         .padding(Spacing.medium)
                     ScanResultListView()
                 }
@@ -42,13 +42,6 @@ struct OverviewView: View {
                 .keyboardShortcut("r", modifiers: .command)
             }
 
-            if case .done = state.scanPhase, let date = state.lastScanDate {
-                ToolbarItem(placement: .status) {
-                    Text("Last scan: \(date.formatted(date: .omitted, time: .shortened))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
         }
     }
 

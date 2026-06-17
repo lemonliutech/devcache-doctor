@@ -147,16 +147,15 @@ struct PlainDisclosureStyle: DisclosureGroupStyle {
         VStack(spacing: 0) {
             HStack {
                 configuration.label
-                Button {
-                    withAnimation(.snappy) {
-                        configuration.isExpanded.toggle()
-                    }
-                } label: {
-                    Image(systemName: configuration.isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                Image(systemName: configuration.isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                withAnimation(.snappy) {
+                    configuration.isExpanded.toggle()
                 }
-                .buttonStyle(.plain)
             }
 
             if configuration.isExpanded {

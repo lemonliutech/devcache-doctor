@@ -3,6 +3,7 @@ import DevStorageCore
 
 struct DiskPressureSummaryView: View {
     let results: [StorageItem]
+    var lastScanDate: Date? = nil
 
     private var volumeAttrs: [FileAttributeKey: Any]? {
         try? FileManager.default.attributesOfFileSystem(
@@ -39,6 +40,11 @@ struct DiskPressureSummaryView: View {
                         Label("Macintosh HD", systemImage: "internaldrive")
                             .font(.headline)
                         Spacer()
+                        if let date = lastScanDate {
+                            Text("Last scan: \(date.formatted(date: .omitted, time: .shortened))")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
                         Text(Int64(totalBytes).formatted(.byteCount(style: .file)))
                             .font(.callout)
                             .foregroundStyle(.secondary)
