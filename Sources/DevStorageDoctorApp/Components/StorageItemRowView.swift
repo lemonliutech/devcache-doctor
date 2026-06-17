@@ -41,6 +41,12 @@ struct StorageItemRowView: View {
                 if item.riskLevel == .protected {
                     Image(systemName: "lock.fill")
                         .foregroundStyle(.secondary)
+                } else if item.status == .failed {
+                    Image(systemName: "exclamationmark.circle")
+                        .foregroundStyle(.orange)
+                } else if item.category == .packageOutput || item.riskLevel == .manualReview {
+                    Image(systemName: "eye")
+                        .foregroundStyle(.secondary)
                 } else if !canSelect {
                     Image(systemName: "minus")
                         .foregroundStyle(.tertiary)
@@ -193,9 +199,9 @@ struct SubPathRowView: View {
                 .toggleStyle(.checkbox)
                 .labelsHidden()
             } else {
-                Image(systemName: "minus")
+                Image(systemName: item.category == .packageOutput ? "eye" : "minus")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .frame(width: 14)
             }
 
