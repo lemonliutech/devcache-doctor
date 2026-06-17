@@ -4,15 +4,17 @@
 
 **Product name:** DevCache Doctor
 
-**Theme:** macOS cache cleanup tool for cross-platform developers
+**Theme:** macOS development storage cleanup tool for cross-platform developers
 
-**Positioning:** A macOS developer-environment cache diagnostic and cleanup tool for cross-platform mobile developers. It helps users understand disk usage, classify cleanup risk, generate an auditable cleanup plan, and safely recover disk space.
+**Positioning:** A macOS development storage diagnostic and cleanup tool for cross-platform mobile developers. It helps users understand disk usage, classify cleanup risk, generate an auditable cleanup plan, and safely recover disk space.
 
-DevCache Doctor is not a generic "junk cleaner". It focuses on developer caches and toolchain artifacts that are large, confusing, and often safe to rebuild, but risky to delete blindly.
+DevCache Doctor is not a generic "junk cleaner". It focuses on reproducible development storage that is large, confusing, and often safe to rebuild or regenerate, but risky to delete blindly.
+
+The product scope includes caches, dependency stores, installed SDK/runtime artifacts, project build outputs, and temporary packaging outputs. This is important because developers often create app packages only to test an output, then never manually remove the generated artifacts.
 
 ## 2. Problem
 
-Multi-platform developers routinely accumulate tens or hundreds of gigabytes of cache across:
+Multi-platform developers routinely accumulate tens or hundreds of gigabytes of development storage across:
 
 - Xcode and iOS Simulator
 - Android SDK, Emulator, and Gradle
@@ -20,6 +22,7 @@ Multi-platform developers routinely accumulate tens or hundreds of gigabytes of 
 - CocoaPods
 - Node, npm, and pnpm
 - HarmonyOS, DevEco, ohpm, and hvigor
+- project build outputs and temporary package outputs
 - Docker, virtual machines, and large project folders
 
 When disk space is nearly full, developers know that some of this data is disposable, but they often do not know:
@@ -28,6 +31,7 @@ When disk space is nearly full, developers know that some of this data is dispos
 - whether deletion will break current projects
 - whether the data can be regenerated
 - how much rebuild or redownload cost deletion causes
+- whether a package output is still useful or was only created for a quick test
 - which SDKs, simulators, or package caches are actively used
 - why a cleanup command failed
 
@@ -54,7 +58,7 @@ Technical leads or senior engineers who help teammates recover disk space withou
 
 ## 4. Jobs To Be Done
 
-When my Mac disk is almost full, I want to know which developer caches are safe to remove, so that I can recover space without breaking my current projects.
+When my Mac disk is almost full, I want to know which development files are safe to remove, so that I can recover space without breaking my current projects.
 
 When I see a huge directory, I want to understand what produced it and whether it is rebuildable, so that I do not delete important project or SDK data by mistake.
 
@@ -66,10 +70,10 @@ When cleanup fails, I want to see the exact exception and suggested fix, so that
    Every cleanup item must explain what it is, why it exists, what deletes it, and what happens afterward.
 
 2. **Risk-first selection**
-   Low-risk items may be selected by default. Medium-risk items require explicit user selection. High-risk and non-cache items are suggestions only.
+   Low-risk items may be selected by default. Medium-risk items require explicit user selection. High-risk and non-cleanable items are suggestions only.
 
 3. **Developer-context aware**
-   The app should detect active projects, booted simulators, current FVM versions, installed SDKs, package managers, and tool availability.
+   The app should detect active projects, booted simulators, current FVM versions, installed SDKs, package managers, generated build outputs, package outputs, and tool availability.
 
 4. **Auditable execution**
    The app generates a cleanup plan before execution and records success, skipped items, failures, and exceptions after execution.
@@ -83,14 +87,18 @@ Use consistent English product language across the app and documentation.
 
 ### Product Category
 
-**macOS cache cleanup tool for cross-platform developers**
+**macOS development storage cleanup tool for cross-platform developers**
 
 ### Primary Terms
 
 - **Scan:** Read-only disk analysis. A scan never deletes files.
-- **Cache Item:** A detected directory, file group, or tool-managed store that may be cleanable.
-- **Cleanup Rule:** The app's known strategy for analyzing and optionally cleaning a cache item.
-- **Cleanup Plan:** A user-reviewable list of actions generated from selected cache items.
+- **Development Storage Item:** A detected directory, file group, or tool-managed store that may be cleanable or worth manual review.
+- **Cache Item:** A rebuildable cache produced by a tool, package manager, IDE, simulator, or build system.
+- **Dependency Store:** Downloaded or installed dependencies that can usually be restored but may require network access.
+- **Build Artifact:** Generated project output such as intermediate build directories, native build products, and compiled assets.
+- **Package Output:** Generated distributable/test artifact such as `.ipa`, `.apk`, `.aab`, `.hap`, `.app`, `.xcarchive`, `.dSYM`, or exported release folders.
+- **Cleanup Rule:** The app's known strategy for analyzing and optionally cleaning a development storage item.
+- **Cleanup Plan:** A user-reviewable list of actions generated from selected development storage items.
 - **Protected Item:** A detected item that the app refuses to delete because it appears active or risky.
 - **Manual Review:** A large item that is useful to surface but outside automatic cleanup.
 - **Exception:** A named scan or cleanup failure with path, operation, cause, and suggested next step.
@@ -102,6 +110,8 @@ The product should avoid words like "junk", "trash", "boost", or "deep clean". P
 - "recover disk space"
 - "cleanup plan"
 - "rebuild cost"
+- "regeneration cost"
+- "package output"
 - "protected because active"
 - "manual review required"
 - "cleanup failed with exception"
@@ -118,12 +128,17 @@ Included:
 - unavailable iOS Simulator devices via `xcrun simctl delete unavailable`
 - iOS Simulator device data size analysis
 - `~/Library/Developer/Xcode/iOS DeviceSupport` analysis
+- `.xcarchive` analysis in configured archive locations
+- `.dSYM` analysis in configured output locations
+- generated `.ipa` analysis in selected project/output directories
 
 MVP behavior:
 
 - DerivedData and unavailable simulators can be low-risk cleanup candidates.
 - Booted simulators must be protected.
 - DeviceSupport should default to manual review because it may be needed for physical-device debugging.
+- Archives, dSYMs, and IPA files default to manual review because they may be release evidence or debugging artifacts.
+- The app may suggest package outputs as likely disposable only when they are inside explicitly configured test-output directories.
 
 ### Android / Gradle
 
@@ -136,12 +151,15 @@ Included:
 - Android NDK versions
 - Android system images
 - Emulator images
+- generated `.apk` and `.aab` files in selected project/output directories
+- Android project build outputs in selected project roots
 
 MVP behavior:
 
 - Gradle daemon cleanup is low risk.
 - Gradle caches are medium risk because dependencies may need to redownload.
 - NDK and system image cleanup require manual selection.
+- APK and AAB outputs default to manual review unless they are in a configured disposable test-output directory.
 
 ### Flutter / Dart / FVM
 
@@ -179,6 +197,7 @@ Flutter project artifact candidates:
 - `<project>/ohos/build/`
 - `<project>/harmonyos/build/` when present
 - generated release artifacts under configured output directories
+- generated `.apk`, `.aab`, `.ipa`, `.app`, `.hap`, and exported release folders
 
 Protected Flutter project items:
 
@@ -190,6 +209,28 @@ Protected Flutter project items:
 - keystores
 - provisioning profiles
 - manually configured output directories unless explicitly marked as disposable
+
+### Project Package Outputs
+
+Included:
+
+- generated `.ipa`
+- generated `.apk`
+- generated `.aab`
+- generated `.hap`
+- generated `.app`
+- generated `.xcarchive`
+- generated `.dSYM`
+- release/export folders inside selected project roots
+- custom package output directories configured by the user
+
+MVP behavior:
+
+- Package outputs are scanned and explained, but not selected by default.
+- Package outputs default to manual review because they may be needed for QA, release upload, crash symbolication, or audit history.
+- Users can mark a folder as a disposable test-output directory. Only then can package outputs inside it become medium-risk selectable cleanup candidates.
+- The app should detect likely test outputs using path context and age, but should not rely on filename heuristics alone.
+- The app must never delete signing assets, provisioning profiles, keystores, or release metadata as part of package-output cleanup.
 
 ### CocoaPods
 
@@ -210,12 +251,15 @@ Included:
 - pnpm store
 - npm cache
 - large `node_modules` detection
+- package-manager dependency stores
+- project-level dependency directories in selected project roots
 
 MVP behavior:
 
 - `pnpm store prune` is preferred over deleting the store directory.
 - npm cache cleanup is medium risk.
 - `node_modules` is never automatically deleted in MVP.
+- Project-level dependency directories are detected for visibility but default to manual review unless a project-specific rule marks them safe.
 
 ### HarmonyOS / DevEco
 
@@ -239,13 +283,14 @@ Included as analysis, not automatic cleanup:
 - virtual machines
 - Docker volumes
 - project source directories
+- release archives and package outputs outside disposable test-output directories
 - large application data directories such as Notion, Lark, browsers, or IDE workspaces
 
 ## 8. Scope Completeness Assessment
 
 The MVP scope is sufficient for the first target segment: cross-platform mobile developers using Xcode, Android, Flutter, Node, CocoaPods, and HarmonyOS tooling.
 
-It is not yet complete for the broader product category, "macOS cache cleanup tool for cross-platform developers." The broader category should eventually include container runtimes, IDE caches, package managers, language ecosystems, and build-system caches beyond mobile app development.
+It is not yet complete for the broader product category, "macOS development storage cleanup tool for cross-platform developers." The broader category should eventually include container runtimes, IDE caches, package managers, language ecosystems, dependency directories, package outputs, and build-system artifacts beyond mobile app development.
 
 ### Covered Well In MVP
 
@@ -253,6 +298,7 @@ It is not yet complete for the broader product category, "macOS cache cleanup to
 - iOS Simulator cleanup and unavailable device detection
 - Android SDK and Gradle cache pressure
 - Flutter, Dart, and FVM cache pressure
+- Flutter and mobile package-output pressure
 - CocoaPods cache and repo pressure
 - Node package cache pressure through npm and pnpm
 - HarmonyOS / DevEco early support
@@ -262,6 +308,7 @@ It is not yet complete for the broader product category, "macOS cache cleanup to
 
 - Docker is only manual-review in MVP, not cache-aware.
 - `node_modules` is detected but never automatically cleaned.
+- Package outputs are detected but default to manual review unless they live in disposable test-output folders.
 - Android SDK cleanup is size-aware but not yet version-usage-aware.
 - HarmonyOS / DevEco rules are expected to start conservative because directory layouts may vary.
 - Project-aware scanning exists as a future direction but is not required for the first scanner.
@@ -289,19 +336,19 @@ These are intentionally outside MVP but important for later versions:
 
 ### Scope Principle
 
-The product should not try to support every cache type by adding one-off delete commands. Each new area should be added only when the app can provide:
+The product should not try to support every storage type by adding one-off delete commands. Each new area should be added only when the app can provide:
 
 - detection confidence
 - size measurement
 - risk classification
 - active-use protection
-- rebuild or redownload explanation
+- rebuild, redownload, or regeneration explanation
 - named exception handling
 - a safe default selection state
 
 ## 9. Expansion Strategy
 
-Expansion should happen in layers, from highest-confidence developer caches to broader ecosystem support.
+Expansion should happen in layers, from highest-confidence reproducible development storage to broader ecosystem support.
 
 ### Phase 1: Mobile Cross-Platform Core
 
@@ -317,6 +364,7 @@ Includes:
 - CocoaPods
 - Node npm/pnpm
 - HarmonyOS / DevEco conservative detection
+- project build artifact and package-output analysis
 - manual-only large directory analysis
 
 Why this phase first:
@@ -327,7 +375,7 @@ These categories match the user's real disk-pressure evidence and create a diffe
 
 Goal:
 
-Cover common macOS developer caches beyond mobile app projects.
+Cover common macOS development storage beyond mobile app projects.
 
 Candidate additions:
 
@@ -337,6 +385,7 @@ Candidate additions:
 - Go, Rust, Python, Ruby, Java/Maven cache families
 - Yarn and Bun caches
 - CMake, ccache, and other local build caches
+- common package and release output directories
 
 Design requirement:
 
@@ -383,6 +432,7 @@ Benefits:
 
 - protect active SDK versions
 - identify stale build directories
+- identify test-only package outputs
 - distinguish current package caches from unused versions
 - make medium-risk cleanup more trustworthy
 
@@ -443,7 +493,7 @@ The app may automate scanning, but cleanup should remain user-confirmed unless a
 
 ### Low Risk
 
-Rebuildable cache. Deletion may cause slower first launch or first build, but should not require network access or SDK reinstall.
+Rebuildable or regeneratable storage. Deletion may cause slower first launch or first build, but should not require network access, SDK reinstall, release re-export, or manual reconstruction.
 
 Examples:
 
@@ -454,7 +504,7 @@ Examples:
 
 ### Medium Risk
 
-Rebuildable data that may require network redownload, dependency restore, package reindexing, or longer build recovery.
+Rebuildable or regeneratable data that may require network redownload, dependency restore, package reindexing, full rebuild, or re-exporting a test package.
 
 Examples:
 
@@ -463,10 +513,11 @@ Examples:
 - CocoaPods cache/repos
 - pnpm store via prune
 - npm cache
+- package outputs inside folders explicitly marked as disposable test-output directories
 
 ### High Risk
 
-Toolchain data that may be required by active projects, current SDK versions, current devices, or offline development.
+Toolchain data or generated outputs that may be required by active projects, current SDK versions, current devices, offline development, QA, release upload, crash symbolication, or audit history.
 
 Examples:
 
@@ -475,10 +526,13 @@ Examples:
 - iOS DeviceSupport
 - FVM SDK versions
 - simulator device data
+- release archives
+- dSYM files
+- package outputs outside disposable test-output directories
 
 ### Manual Only
 
-Large data that is not safely classifiable as developer cache.
+Large data that is not safely classifiable as disposable development storage.
 
 Examples:
 
@@ -487,6 +541,7 @@ Examples:
 - source projects
 - user documents
 - app databases
+- release evidence and package archives outside configured cleanup rules
 
 ## 11. Exception Catalog
 
@@ -623,12 +678,12 @@ Required output:
 
 ### US-1: Understand Disk Pressure
 
-As a cross-platform developer, I want to see how much disk space is used by developer tooling, so that I can decide whether cleanup is worth doing.
+As a cross-platform developer, I want to see how much disk space is used by developer tooling, dependencies, build artifacts, and package outputs, so that I can decide whether cleanup is worth doing.
 
 Acceptance criteria:
 
 - The overview shows total available disk space.
-- The overview separates developer caches from manual-only large data.
+- The overview separates caches, dependencies, build artifacts, package outputs, and manual-only large data.
 - The overview shows low-risk, medium-risk, and manual-review totals.
 
 ### US-2: Clean Low-Risk Caches
@@ -664,7 +719,7 @@ Acceptance criteria:
 
 ### US-5: Diagnose Failed Cleanup
 
-As a developer, I want cleanup failures to be named and actionable, so that I can resolve permission or process issues.
+As a developer, I want cleanup failures to be named and actionable, so that I can resolve permission, process, package-output, or dependency issues.
 
 Acceptance criteria:
 
@@ -687,7 +742,7 @@ Rule fields:
 - risk level
 - default selection state
 - active protection checks
-- rebuild cost explanation
+- rebuild, redownload, or regeneration cost explanation
 - possible exceptions
 
 Example:
@@ -737,6 +792,7 @@ Exit criteria:
 
 - No deletion is possible.
 - Xcode, Simulator, Gradle, Pub, FVM, pnpm, CocoaPods, and manual-only large directories can be measured.
+- Project-level build artifacts and package outputs can be measured inside selected project roots.
 
 ### Milestone 2: Risk Classification
 
@@ -746,7 +802,7 @@ Classify scan results and explain each classification.
 
 Exit criteria:
 
-- Risk badge and explanation exist for every cache item.
+- Risk badge and explanation exist for every development storage item.
 - Protected items are marked and excluded from selection.
 
 ### Milestone 3: Cleanup Plan
@@ -794,6 +850,8 @@ The MVP will not:
 - delete user projects automatically
 - delete virtual machines automatically
 - delete Docker volumes automatically
+- automatically delete package outputs unless the user has explicitly marked the containing folder as disposable
+- delete release archives, dSYMs, or QA artifacts by default
 - clean Homebrew, Docker, JetBrains, VS Code, language package managers, or build-system caches in the first release unless a rule is explicitly added
 - run scheduled cleanup automatically
 - bypass macOS permission controls

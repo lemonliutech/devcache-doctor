@@ -17,6 +17,7 @@
 - [ ] Detect Android and Gradle cache sizes
 - [ ] Detect Flutter, Dart, and FVM cache sizes
 - [ ] Detect Flutter project build artifacts inside selected project roots
+- [ ] Detect temporary mobile package outputs inside selected project roots
 - [ ] Detect Node, pnpm, npm, and CocoaPods cache sizes
 - [ ] Detect HarmonyOS / DevEco cache candidates
 - [ ] Produce grouped scan report
@@ -51,6 +52,7 @@
 - [ ] Homebrew and package-manager cache rule pack
 - [ ] IDE cache rule pack for VS Code and JetBrains tools
 - [ ] Language ecosystem rule packs for Go, Rust, Python, Ruby, Java, SwiftPM, Yarn, and Bun
+- [ ] Package-output analysis for mobile release/test artifacts
 - [ ] Container/runtime analysis for Docker, Colima, Lima, and local Kubernetes
 - [ ] Build-system cache rules for Bazel, CMake, ccache, Metro, Watchman, Unity, and Unreal
 - [ ] Project-aware protection based on repository manifests and lockfiles

@@ -2,7 +2,7 @@
 
 ## 1. UX Goal
 
-DevCache Doctor should make developer cache cleanup feel explainable, controlled, and reversible where possible.
+DevCache Doctor should make development storage cleanup feel explainable, controlled, and reversible where possible.
 
 The app must avoid the visual language of generic "junk cleaners". It should feel like a professional developer utility: dense, clear, calm, and precise.
 
@@ -59,6 +59,7 @@ Example groups:
 - Xcode / iOS
 - Android / Gradle
 - Flutter / Dart / FVM
+- Package Outputs
 - Node / pnpm / npm
 - CocoaPods
 - HarmonyOS / DevEco
@@ -69,10 +70,11 @@ Flutter group note:
 - The Flutter / Dart / FVM group should include a project-roots section.
 - Users can add workspace folders to scan Flutter project artifacts.
 - The app should show project-level build artifacts separately from global Dart and FVM caches.
+- Package outputs should be shown as a separate subgroup so users can distinguish temporary test artifacts from dependency/build caches.
 
 Empty state:
 
-- If no developer caches are found, show detected toolchains and explain that no safe cleanup rule matched.
+- If no development storage items are found, show detected toolchains and explain that no safe cleanup rule matched.
 
 Error state:
 
@@ -93,7 +95,7 @@ Core information per cleanup item:
 - selected state
 - why it exists
 - deletion impact
-- rebuild/redownload cost
+- rebuild/redownload/regeneration cost
 - command or cleanup method
 - protection reason if unavailable
 
@@ -197,7 +199,7 @@ Use plain text. Avoid alarmist language.
 Example:
 
 ```text
-This cleanup may require package managers to download dependencies again. It will not delete source projects, active simulators, or current FVM SDKs.
+This cleanup may require package managers to download dependencies again or projects to regenerate build outputs. It will not delete source projects, active simulators, current FVM SDKs, or package outputs outside folders you marked as disposable.
 ```
 
 ### Screen 5: Execution Progress
@@ -399,6 +401,7 @@ Fields:
 - low-risk recoverable
 - medium-risk recoverable
 - manual-review data
+- package-output data
 - last scan time
 
 States:
@@ -408,11 +411,11 @@ States:
 - critically low disk space
 - scan unavailable
 
-### Cache Item Row
+### Development Storage Item Row
 
 Purpose:
 
-Represent one detected cache item in a dense but understandable row.
+Represent one detected cache, dependency store, build artifact, or package output in a dense but understandable row.
 
 Fields:
 
@@ -520,6 +523,12 @@ Medium-risk example:
 Can be rebuilt, but dependencies may need to be downloaded again.
 ```
 
+Package-output manual-review example:
+
+```text
+Generated package output. Keep it if it was used for QA, upload, symbolication, or release history.
+```
+
 High-risk example:
 
 ```text
@@ -543,7 +552,7 @@ Large directory found, but DevCache Doctor does not have a safe cleanup rule for
 Confirmation should be specific:
 
 ```text
-This cleanup will remove 3 low-risk caches and 1 medium-risk cache. It will not delete source projects, active simulators, current FVM SDKs, or manual-review items.
+This cleanup will remove 3 low-risk caches and 1 medium-risk build artifact. It will not delete source projects, active simulators, current FVM SDKs, or package outputs outside disposable folders.
 ```
 
 Avoid generic claims:
