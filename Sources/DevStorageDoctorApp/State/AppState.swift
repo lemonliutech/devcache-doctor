@@ -63,6 +63,10 @@ enum CleanupPhase: Equatable {
     case done
 }
 
+enum SubPathSelectionState {
+    case none, partial, all
+}
+
 // MARK: - App State
 
 @MainActor
@@ -71,6 +75,9 @@ final class AppState {
     var scanPhase: ScanPhase = .idle
     var results: [StorageItem] = []
     var selectedItemIDs: Set<String> = []
+    /// For aggregated items: tracks which sub-paths are individually selected.
+    /// Key = StorageItem.id, Value = set of selected sub-path paths.
+    var selectedSubPaths: [String: Set<String>] = [:]
     var lastScanDate: Date?
     var showingCleanupPlan = false
 
@@ -108,7 +115,19 @@ final class AppState {
     }
 
     var estimatedRecoveryBytes: UInt64 {
-        selectedItems.compactMap(\.sizeBytes).reduce(0, +)
+        var total: UInt64 = 0
+        for item in selectedItems {
+            if item.subPaths.isEmpty {
+                total += item.sizeBytes ?? 0
+            } else {
+                let selected = selectedSubPaths[item.id] ?? Set(item.subPaths.map(\.path))
+                total += item.subPaths
+                    .filter { selected.contains($0.path) }
+                    .compactMap(\.sizeBytes)
+                    .reduce(0, +)
+            }
+        }
+        return total
     }
 
     var exceptions: [StorageItem] {
@@ -122,15 +141,54 @@ final class AppState {
               item.category != .packageOutput else { return }
         if selectedItemIDs.contains(item.id) {
             selectedItemIDs.remove(item.id)
+            selectedSubPaths.removeValue(forKey: item.id)
+        } else {
+            selectedItemIDs.insert(item.id)
+            // Default: all sub-paths selected
+            if !item.subPaths.isEmpty {
+                selectedSubPaths[item.id] = Set(item.subPaths.map(\.path))
+            }
+        }
+    }
+
+    func toggleSubPath(_ subPath: StorageSubPath, in item: StorageItem) {
+        var selected = selectedSubPaths[item.id] ?? Set(item.subPaths.map(\.path))
+        if selected.contains(subPath.path) {
+            selected.remove(subPath.path)
+        } else {
+            selected.insert(subPath.path)
+        }
+        selectedSubPaths[item.id] = selected
+
+        // Keep parent selected if any sub-path is selected; deselect if none
+        if selected.isEmpty {
+            selectedItemIDs.remove(item.id)
+            selectedSubPaths.removeValue(forKey: item.id)
         } else {
             selectedItemIDs.insert(item.id)
         }
+    }
+
+    func subPathSelectionState(for item: StorageItem) -> SubPathSelectionState {
+        guard !item.subPaths.isEmpty else { return .none }
+        let selected = selectedSubPaths[item.id] ?? []
+        if selected.isEmpty { return .none }
+        if selected.count == item.subPaths.count { return .all }
+        return .partial
+    }
+
+    /// Build a flat list of paths to actually delete, respecting sub-path selections.
+    func resolvedCleanupPaths(for item: StorageItem) -> [String] {
+        if item.subPaths.isEmpty { return [item.path] }
+        let selected = selectedSubPaths[item.id] ?? Set(item.subPaths.map(\.path))
+        return item.subPaths.filter { selected.contains($0.path) }.map(\.path)
     }
 
     func runScan() {
         scanPhase = .scanning
         results = []
         selectedItemIDs = []
+        selectedSubPaths = [:]
         scanProgressCurrent = 0
         scanProgressTotal = 0
         scanningRuleName = ""
@@ -170,7 +228,29 @@ final class AppState {
     }
 
     func runCleanup() {
-        let itemsToClean = selectedItems
+        // Expand aggregated items into individual sub-path items for the executor
+        let itemsToClean: [StorageItem] = selectedItems.flatMap { item -> [StorageItem] in
+            let paths = resolvedCleanupPaths(for: item)
+            if paths.count == 1 && paths[0] == item.path {
+                return [item]
+            }
+            // Create synthetic StorageItems for each resolved sub-path
+            return paths.map { path in
+                StorageItem(
+                    id: "\(item.id)|\(path)",
+                    displayName: "\(item.displayName) (\(URL(fileURLWithPath: path).deletingLastPathComponent().lastPathComponent))",
+                    path: path,
+                    category: item.category,
+                    toolchain: item.toolchain,
+                    sizeBytes: item.subPaths.first(where: { $0.path == path })?.sizeBytes,
+                    riskLevel: item.riskLevel,
+                    status: item.status,
+                    defaultSelected: item.defaultSelected,
+                    explanation: item.explanation,
+                    exception: item.exception
+                )
+            }
+        }
         guard !itemsToClean.isEmpty else { return }
 
         cleanupPhase = .executing
@@ -197,6 +277,7 @@ final class AppState {
                 )
                 self?.results.removeAll { removedPaths.contains($0.path) }
                 self?.selectedItemIDs.removeAll()
+                self?.selectedSubPaths.removeAll()
             }
         }
     }
