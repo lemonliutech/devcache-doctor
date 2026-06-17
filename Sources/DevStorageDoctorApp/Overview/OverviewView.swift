@@ -5,54 +5,24 @@ struct OverviewView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.large) {
+            switch state.scanPhase {
+            case .idle:
+                idleState
+            case .scanning:
+                scanningState
+            case .done:
+                VStack(spacing: 0) {
                     DiskPressureSummaryView(results: state.results)
-                        .padding(.horizontal, Spacing.medium)
-                        .padding(.top, Spacing.medium)
-
-                    switch state.scanPhase {
-                    case .idle:
-                        idleState
-                    case .scanning:
-                        scanningState
-                    case .done:
-                        ScanResultListView()
-                    case .failed(let msg):
-                        failedState(msg)
-                    }
+                        .padding(Spacing.medium)
+                    ScanResultListView()
                 }
+            case .failed(let msg):
+                failedState(msg)
             }
         }
-    }
-
-    // MARK: - Toolbar
-
-    private var toolbar: some View {
-        VStack(spacing: 0) {
-            HStack {
-                switch state.scanPhase {
-                case .scanning:
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .padding(.trailing, 4)
-                    Text("Scanning…")
-                        .font(.bodySmall)
-                        .foregroundStyle(Color.textSecondary)
-                case .done:
-                    if let date = state.lastScanDate {
-                        Text("Last scan: \(date.formatted(date: .omitted, time: .shortened))")
-                            .font(.caption)
-                            .foregroundStyle(Color.textMuted)
-                    }
-                default:
-                    EmptyView()
-                }
-
-                Spacer()
-
+        .navigationTitle("DevStorage Doctor")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     state.runScan()
                 } label: {
@@ -60,72 +30,61 @@ struct OverviewView: View {
                         state.scanPhase == .idle ? "Scan" : "Rescan",
                         systemImage: "arrow.clockwise"
                     )
-                    .font(.bodySmall)
                 }
                 .disabled(state.scanPhase == .scanning)
                 .keyboardShortcut("r", modifiers: .command)
             }
-            .padding(.horizontal, Spacing.medium)
-            .padding(.vertical, Spacing.small)
-            .background(Color.bgSurface)
-            Divider().background(Color.borderSubtle)
+
+            if case .done = state.scanPhase, let date = state.lastScanDate {
+                ToolbarItem(placement: .status) {
+                    Text("Last scan: \(date.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if state.scanPhase == .scanning {
+                ToolbarItem(placement: .status) {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .padding(.trailing, 4)
+                }
+            }
         }
     }
 
     // MARK: - States
 
     private var idleState: some View {
-        VStack(spacing: Spacing.large) {
-            Image(systemName: "magnifyingglass.circle")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.textMuted)
-            VStack(spacing: Spacing.small) {
-                Text("Ready to scan")
-                    .font(.headingSmall)
-                    .foregroundStyle(Color.textPrimary)
-                Text("Press Scan to measure your development storage.")
-                    .font(.bodySmall)
-                    .foregroundStyle(Color.textSecondary)
-            }
+        ContentUnavailableView {
+            Label("Ready to Scan", systemImage: "magnifyingglass.circle")
+        } description: {
+            Text("Measure your development storage.\nNothing is deleted until you confirm.")
+        } actions: {
             Button("Scan Now") { state.runScan() }
                 .buttonStyle(.borderedProminent)
-                .tint(Color.accentPrimary)
+                .keyboardShortcut(.return)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 80)
     }
 
     private var scanningState: some View {
-        VStack(spacing: Spacing.large) {
+        ContentUnavailableView {
+            Label("Scanning…", systemImage: "arrow.clockwise")
+        } description: {
+            Text("Measuring development storage.")
+        } actions: {
             ProgressView()
-                .scaleEffect(1.5)
-            Text("Measuring development storage…")
-                .font(.bodySmall)
-                .foregroundStyle(Color.textSecondary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 80)
     }
 
     private func failedState(_ message: String) -> some View {
-        VStack(spacing: Spacing.large) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.riskHigh)
-            VStack(spacing: Spacing.small) {
-                Text("Scan could not complete")
-                    .font(.headingSmall)
-                    .foregroundStyle(Color.textPrimary)
-                Text(message)
-                    .font(.bodySmall)
-                    .foregroundStyle(Color.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            Button("Retry Scan") { state.runScan() }
+        ContentUnavailableView {
+            Label("Scan Failed", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("Retry") { state.runScan() }
                 .buttonStyle(.borderedProminent)
-                .tint(Color.accentPrimary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 80)
     }
 }

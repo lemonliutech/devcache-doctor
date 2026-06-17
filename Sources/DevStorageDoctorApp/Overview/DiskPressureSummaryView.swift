@@ -4,21 +4,21 @@ import DevStorageCore
 struct DiskPressureSummaryView: View {
     let results: [StorageItem]
 
-    private var totalBytes: UInt64 {
-        (try? FileManager.default.attributesOfFileSystem(
+    private var volumeAttrs: [FileAttributeKey: Any]? {
+        try? FileManager.default.attributesOfFileSystem(
             forPath: FileManager.default.homeDirectoryForCurrentUser.path
-        )[.systemSize] as? UInt64) ?? 0
+        )
     }
 
-    private var freeBytes: UInt64 {
-        (try? FileManager.default.attributesOfFileSystem(
-            forPath: FileManager.default.homeDirectoryForCurrentUser.path
-        )[.systemFreeSize] as? UInt64) ?? 0
+    private var totalBytes: Int64 {
+        Int64((volumeAttrs?[.systemSize] as? UInt64) ?? 0)
     }
 
-    private var usedBytes: UInt64 {
-        totalBytes > freeBytes ? totalBytes - freeBytes : 0
+    private var freeBytes: Int64 {
+        Int64((volumeAttrs?[.systemFreeSize] as? UInt64) ?? 0)
     }
+
+    private var usedBytes: Int64 { max(0, totalBytes - freeBytes) }
 
     private var lowRiskBytes: UInt64 {
         results.filter { $0.riskLevel == .low && $0.status == .found }
@@ -30,96 +30,72 @@ struct DiskPressureSummaryView: View {
             .compactMap(\.sizeBytes).reduce(0, +)
     }
 
-    private var manualReviewBytes: UInt64 {
-        results.filter { $0.category == .packageOutput && $0.status == .found }
-            .compactMap(\.sizeBytes).reduce(0, +)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.base) {
-            HStack {
-                Text("Macintosh HD")
-                    .font(.headingSmall)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer()
-                Text(formatBytes(totalBytes))
-                    .font(.bodySmall)
-                    .foregroundStyle(Color.textSecondary)
-            }
+        GroupBox {
+            VStack(alignment: .leading, spacing: Spacing.base) {
+                // Disk bar
+                VStack(alignment: .leading, spacing: Spacing.tight) {
+                    HStack {
+                        Label("Macintosh HD", systemImage: "internaldrive")
+                            .font(.headline)
+                        Spacer()
+                        Text(Int64(totalBytes).formatted(.byteCount(style: .file)))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
 
-            diskBar
+                    if totalBytes > 0 {
+                        ProgressView(value: Double(usedBytes), total: Double(totalBytes))
+                            .progressViewStyle(.linear)
+                            .tint(.primary.opacity(0.4))
+                    }
 
-            HStack(spacing: Spacing.large) {
-                diskStatCell(
-                    label: "Used",
-                    bytes: usedBytes,
-                    color: Color.bgOverlay
-                )
-                diskStatCell(
-                    label: "Available",
-                    bytes: freeBytes,
-                    color: Color.textSecondary
-                )
-                Spacer()
-                recoverableCell(label: "Low Risk", bytes: lowRiskBytes, color: .riskLow)
-                recoverableCell(label: "Medium Risk", bytes: mediumRiskBytes, color: .riskMedium)
-                recoverableCell(label: "Manual Review", bytes: manualReviewBytes, color: .riskManual)
-            }
-        }
-        .padding(Spacing.xl)
-        .background(Color.bgSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
+                    HStack {
+                        Text(Int64(usedBytes).formatted(.byteCount(style: .file)) + " used")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(Int64(freeBytes).formatted(.byteCount(style: .file)) + " available")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
-    private var diskBar: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.bgOverlay)
-                    .frame(height: 8)
+                Divider()
 
-                if totalBytes > 0 {
-                    let usedFraction = CGFloat(usedBytes) / CGFloat(totalBytes)
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.borderStrong)
-                        .frame(width: proxy.size.width * usedFraction, height: 8)
+                // Recoverable summary
+                HStack(spacing: Spacing.large) {
+                    recoverableCell(
+                        label: "Low Risk",
+                        bytes: lowRiskBytes,
+                        color: .riskLow,
+                        icon: "checkmark.circle.fill"
+                    )
+                    recoverableCell(
+                        label: "Medium Risk",
+                        bytes: mediumRiskBytes,
+                        color: .riskMedium,
+                        icon: "exclamationmark.circle.fill"
+                    )
+                    Spacer()
                 }
             }
         }
-        .frame(height: 8)
     }
 
-    private func diskStatCell(label: String, bytes: UInt64, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Color.textMuted)
-            Text(formatBytes(bytes))
-                .font(.bodySmall)
-                .fontWeight(.medium)
+    private func recoverableCell(label: String, bytes: UInt64, color: Color, icon: String) -> some View {
+        HStack(spacing: Spacing.tight) {
+            Image(systemName: icon)
                 .foregroundStyle(color)
-                .monospacedDigit()
+            VStack(alignment: .leading, spacing: 1) {
+                Text(UInt64(bytes).formatted(.byteCount(style: .file)))
+                    .font(.callout)
+                    .fontWeight(.medium)
+                    .monospacedDigit()
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
-    }
-
-    private func recoverableCell(label: String, bytes: UInt64, color: Color) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Color.textMuted)
-            Text(formatBytes(bytes))
-                .font(.bodySmall)
-                .fontWeight(.medium)
-                .foregroundStyle(color)
-                .monospacedDigit()
-        }
-    }
-
-    private func formatBytes(_ bytes: UInt64) -> String {
-        let gb = Double(bytes) / 1_073_741_824
-        if gb >= 1 { return String(format: "%.1f GB", gb) }
-        let mb = Double(bytes) / 1_048_576
-        if mb >= 1 { return String(format: "%.0f MB", mb) }
-        return "\(bytes) B"
     }
 }

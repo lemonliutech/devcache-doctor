@@ -7,160 +7,148 @@ struct StorageItemRowView: View {
     let onToggle: () -> Void
 
     @State private var isExpanded = false
-    @State private var isHovered  = false
 
     private var canSelect: Bool {
         item.status == .found
-        && item.riskLevel != .protected
-        && item.riskLevel != .unsupported
-        && item.category != .packageOutput
+            && item.riskLevel != .protected
+            && item.riskLevel != .unsupported
+            && item.category != .packageOutput
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Collapsed row
-            HStack(spacing: Spacing.base) {
-                selectionControl
-                    .frame(width: 20)
+        DisclosureGroup(isExpanded: $isExpanded) {
+            expandedDetail
+        } label: {
+            rowLabel
+        }
+        .disclosureGroupStyle(PlainDisclosureStyle())
+    }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.displayName)
-                        .font(.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundStyle(Color.textPrimary)
-                    Text(item.explanation)
-                        .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
-                        .lineLimit(1)
+    // MARK: - Collapsed label
+
+    private var rowLabel: some View {
+        HStack(spacing: Spacing.small) {
+            // Selection control
+            Group {
+                if item.riskLevel == .protected {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(.secondary)
+                } else if !canSelect {
+                    Image(systemName: "minus")
+                        .foregroundStyle(.tertiary)
+                } else {
+                    Toggle("", isOn: Binding(
+                        get: { isSelected },
+                        set: { _ in onToggle() }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .labelsHidden()
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(width: 18)
 
-                Text(item.toolchain)
+            // Name + short explanation
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.displayName)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                Text(item.explanation)
                     .font(.caption)
-                    .foregroundStyle(Color.textMuted)
-                    .frame(width: 130, alignment: .trailing)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-
-                sizeLabel
-                    .frame(width: 72, alignment: .trailing)
-
-                RiskBadgeView(riskLevel: item.riskLevel)
-                    .frame(width: 104, alignment: .trailing)
-
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(Color.textMuted)
-                    .rotationEffect(isExpanded ? .degrees(0) : .degrees(0))
-            }
-            .padding(.horizontal, Spacing.medium)
-            .padding(.vertical, Spacing.small)
-            .contentShape(Rectangle())
-            .onHover { isHovered = $0 }
-            .onTapGesture {
-                withAnimation(.standard) {
-                    isExpanded.toggle()
-                }
-            }
-
-            // Expanded detail
-            if isExpanded {
-                expandedDetail
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .background(isHovered ? Color.bgElevated : Color.clear)
-        .animation(.micro, value: isHovered)
-    }
-
-    // MARK: - Subviews
-
-    @ViewBuilder
-    private var selectionControl: some View {
-        if item.riskLevel == .protected {
-            Image(systemName: "lock.fill")
-                .font(.caption)
-                .foregroundStyle(Color.riskProtected)
-        } else if !canSelect {
-            Image(systemName: "minus")
-                .font(.caption)
-                .foregroundStyle(Color.textMuted)
-        } else {
-            Button(action: onToggle) {
-                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                    .foregroundStyle(isSelected ? Color.accentPrimary : Color.textMuted)
-                    .font(.system(size: 14))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(item.displayName), \(isSelected ? "selected" : "not selected")")
-        }
-    }
-
-    @ViewBuilder
-    private var sizeLabel: some View {
-        if let bytes = item.sizeBytes {
-            Text(formatBytes(bytes))
-                .font(.bodySmall)
-                .fontWeight(.medium)
-                .foregroundStyle(Color.textPrimary)
-                .monospacedDigit()
-        } else {
-            Text("—")
-                .font(.bodySmall)
-                .foregroundStyle(Color.textMuted)
-        }
-    }
-
-    private var expandedDetail: some View {
-        VStack(alignment: .leading, spacing: Spacing.small) {
-            Divider()
-                .background(Color.borderSubtle)
-                .padding(.horizontal, Spacing.medium)
-
-            VStack(spacing: Spacing.tight) {
-                detailRow(label: "Path", value: item.path, isPath: true)
-                detailRow(label: "Risk", value: item.riskLevel.rawValue.capitalized)
-                detailRow(label: "Category", value: item.category.rawValue.capitalized)
-                if let ex = item.exception {
-                    detailRow(label: "Issue", value: ex.message)
-                    detailRow(label: "Suggestion", value: ex.suggestion)
-                }
-            }
-            .padding(.horizontal, Spacing.medium + 20 + Spacing.base)
-            .padding(.bottom, Spacing.base)
-        }
-    }
-
-    private func detailRow(label: String, value: String, isPath: Bool = false) -> some View {
-        HStack(alignment: .top, spacing: Spacing.small) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Color.textMuted)
-                .frame(width: 72, alignment: .trailing)
-
-            if isPath {
-                Text(value)
-                    .font(.mono)
-                    .foregroundStyle(Color.textSecondary)
-                    .textSelection(.enabled)
-                    .lineLimit(2)
-            } else {
-                Text(value)
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-                    .textSelection(.enabled)
             }
 
             Spacer()
+
+            // Size
+            if let bytes = item.sizeBytes {
+                Text(bytes.formatted(.byteCount(style: .file)))
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .frame(width: 70, alignment: .trailing)
+            } else {
+                Text("—")
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 70, alignment: .trailing)
+            }
+
+            RiskBadgeView(riskLevel: item.riskLevel)
+                .frame(width: 90, alignment: .trailing)
         }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
     }
 
-    private func formatBytes(_ bytes: UInt64) -> String {
-        let gb = Double(bytes) / 1_073_741_824
-        if gb >= 1 { return String(format: "%.1f GB", gb) }
-        let mb = Double(bytes) / 1_048_576
-        if mb >= 1 { return String(format: "%.0f MB", mb) }
-        let kb = Double(bytes) / 1024
-        if kb >= 1 { return String(format: "%.0f KB", kb) }
-        return "\(bytes) B"
+    // MARK: - Expanded detail
+
+    private var expandedDetail: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            detailRow("Path") {
+                Text(item.path)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .lineLimit(2)
+            }
+            detailRow("Toolchain") {
+                Text(item.toolchain)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let ex = item.exception {
+                detailRow("Issue") {
+                    Text(ex.message)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                detailRow("Fix") {
+                    Text(ex.suggestion)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.leading, 26)
+        .padding(.vertical, 4)
+    }
+
+    private func detailRow<V: View>(_ label: String, @ViewBuilder content: () -> V) -> some View {
+        HStack(alignment: .top, spacing: Spacing.small) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(width: 56, alignment: .trailing)
+            content()
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Plain disclosure style (no arrow padding shift)
+
+struct PlainDisclosureStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                configuration.label
+                Button {
+                    withAnimation(.snappy) {
+                        configuration.isExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: configuration.isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if configuration.isExpanded {
+                configuration.content
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 }

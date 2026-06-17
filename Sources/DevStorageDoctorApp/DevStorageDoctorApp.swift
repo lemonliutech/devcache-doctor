@@ -9,14 +9,13 @@ struct DevStorageDoctorApp: App {
             ContentView()
                 .environment(appState)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified(showsTitle: true))
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
-                Button("Scan") {
-                    appState.runScan()
-                }
-                .keyboardShortcut("r", modifiers: .command)
+                Button("Scan") { appState.runScan() }
+                    .keyboardShortcut("r", modifiers: .command)
             }
         }
     }

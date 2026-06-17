@@ -9,13 +9,12 @@ struct ContentView: View {
             SidebarView(selection: $sidebarSelection)
         } content: {
             detailView
-                .navigationSplitViewColumnWidth(min: 480, ideal: 640)
+                .navigationSplitViewColumnWidth(min: 460, ideal: 620)
         } detail: {
             CleanupPlanPanelView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         }
-        .preferredColorScheme(.dark)
-        .frame(minWidth: 780, minHeight: 520)
+        .frame(minWidth: 800, minHeight: 520)
     }
 
     @ViewBuilder
@@ -37,83 +36,58 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Placeholder views (to be replaced in subsequent tasks)
+// MARK: - Toolchain detail
 
 struct ToolchainDetailView: View {
     let toolchain: String
     @Environment(AppState.self) private var state
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(toolchain)
-                    .font(.headingSmall)
-                    .foregroundStyle(Color.textPrimary)
-                Spacer()
-            }
-            .padding(Spacing.medium)
-            .background(Color.bgSurface)
-
-            Divider().background(Color.borderSubtle)
-
-            let items = state.items(for: toolchain)
+        let items = state.items(for: toolchain)
+        Group {
             if items.isEmpty {
-                emptyToolchain
+                ContentUnavailableView(
+                    "No \(toolchain) Storage",
+                    systemImage: "tray",
+                    description: Text("No storage detected for this toolchain.")
+                )
             } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(items) { item in
-                            StorageItemRowView(
-                                item: item,
-                                isSelected: state.selectedItemIDs.contains(item.id),
-                                onToggle: { state.toggleSelection(item) }
-                            )
-                            Divider().background(Color.borderSubtle)
-                                .padding(.leading, 52)
-                        }
+                List {
+                    ForEach(items) { item in
+                        StorageItemRowView(
+                            item: item,
+                            isSelected: state.selectedItemIDs.contains(item.id),
+                            onToggle: { state.toggleSelection(item) }
+                        )
                     }
                 }
+                .listStyle(.inset(alternatesRowBackgrounds: true))
             }
         }
-    }
-
-    private var emptyToolchain: some View {
-        VStack(spacing: Spacing.base) {
-            Image(systemName: "tray")
-                .font(.system(size: 32))
-                .foregroundStyle(Color.textMuted)
-            Text("No \(toolchain) storage detected")
-                .font(.bodySmall)
-                .foregroundStyle(Color.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle(toolchain)
     }
 }
 
+// MARK: - Placeholders
+
 struct SettingsPlaceholderView: View {
     var body: some View {
-        VStack {
-            Text("Settings")
-                .font(.headingSmall)
-                .foregroundStyle(Color.textPrimary)
-            Text("Coming in a future task")
-                .font(.bodySmall)
-                .foregroundStyle(Color.textMuted)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ContentUnavailableView(
+            "Settings",
+            systemImage: "gearshape",
+            description: Text("Coming soon.")
+        )
+        .navigationTitle("Settings")
     }
 }
 
 struct ReportsPlaceholderView: View {
     var body: some View {
-        VStack {
-            Text("Reports")
-                .font(.headingSmall)
-                .foregroundStyle(Color.textPrimary)
-            Text("Coming in a future task")
-                .font(.bodySmall)
-                .foregroundStyle(Color.textMuted)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ContentUnavailableView(
+            "Reports",
+            systemImage: "doc.text",
+            description: Text("Run a scan to generate a report.")
+        )
+        .navigationTitle("Reports")
     }
 }
