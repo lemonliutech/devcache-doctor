@@ -151,13 +151,45 @@ Included:
 - `~/.pub-cache/git`
 - FVM versions
 - Flutter SDK cache analysis
-- project build artifact detection where a project root is selected
+- Flutter project discovery in user-selected project roots
+- Flutter project build artifact detection
+- Flutter package and native build artifact size analysis
 
 MVP behavior:
 
 - Pub cache cleanup is medium risk.
 - Current FVM SDK versions must be protected.
 - Unused FVM versions can be suggested, but not selected by default.
+- Flutter project artifacts are scanned only inside explicit project roots or user-configured workspace directories.
+- The app should not crawl the whole disk looking for Flutter projects in MVP.
+- Flutter project artifact cleanup is medium risk by default because it may remove build outputs and trigger full rebuilds.
+
+Flutter project artifact candidates:
+
+- `<project>/build/`
+- `<project>/.dart_tool/`
+- `<project>/.packages` when present in older projects
+- `<project>/ios/Pods/`
+- `<project>/ios/.symlinks/`
+- `<project>/ios/Flutter/Flutter.framework` when generated
+- `<project>/ios/Flutter/Flutter.podspec` when generated
+- `<project>/android/.gradle/`
+- `<project>/android/build/`
+- `<project>/android/app/build/`
+- `<project>/ohos/build/`
+- `<project>/harmonyos/build/` when present
+- generated release artifacts under configured output directories
+
+Protected Flutter project items:
+
+- source files
+- `pubspec.yaml`
+- lockfiles
+- platform source directories themselves
+- signing files
+- keystores
+- provisioning profiles
+- manually configured output directories unless explicitly marked as disposable
 
 ### CocoaPods
 

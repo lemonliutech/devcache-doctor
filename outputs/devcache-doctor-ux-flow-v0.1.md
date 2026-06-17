@@ -64,6 +64,12 @@ Example groups:
 - HarmonyOS / DevEco
 - Manual Review
 
+Flutter group note:
+
+- The Flutter / Dart / FVM group should include a project-roots section.
+- Users can add workspace folders to scan Flutter project artifacts.
+- The app should show project-level build artifacts separately from global Dart and FVM caches.
+
 Empty state:
 
 - If no developer caches are found, show detected toolchains and explain that no safe cleanup rule matched.
@@ -346,6 +352,7 @@ MVP settings:
 - show command previews: on
 - collect anonymous analytics: off by default or absent in MVP
 - custom scan paths
+- Flutter project roots
 
 ## 6. Visual Direction
 

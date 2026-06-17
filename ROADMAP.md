@@ -16,6 +16,7 @@
 - [ ] Detect Xcode and iOS Simulator cache sizes
 - [ ] Detect Android and Gradle cache sizes
 - [ ] Detect Flutter, Dart, and FVM cache sizes
+- [ ] Detect Flutter project build artifacts inside selected project roots
 - [ ] Detect Node, pnpm, npm, and CocoaPods cache sizes
 - [ ] Detect HarmonyOS / DevEco cache candidates
 - [ ] Produce grouped scan report
