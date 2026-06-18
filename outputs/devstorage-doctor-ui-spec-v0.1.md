@@ -1,0 +1,664 @@
+# DevStorage Doctor — UI/UX Specification v0.1
+
+> This document extends `devstorage-doctor-ux-flow-v0.1.md`.
+> Covers: design tokens, component specs, first-launch flow, microinteractions, and all screen wireframes.
+
+---
+
+## 1. Design Tokens
+
+### Color System
+
+```
+Background layers
+  --bg-base       #0F172A   (slate-900)  — window background
+  --bg-surface    #1E293B   (slate-800)  — card / sidebar
+  --bg-elevated   #293548   (slate-750)  — hover row, popover
+  --bg-overlay    #334155   (slate-700)  — modal, sheet
+
+Text
+  --text-primary  #F8FAFC   (slate-50)   — headlines, active labels
+  --text-secondary #94A3B8  (slate-400)  — descriptions, metadata
+  --text-muted    #64748B   (slate-500)  — disabled, placeholder
+  --text-inverse  #0F172A                — text on light surface
+
+Borders
+  --border-subtle  #1E293B  (slate-800)  — separator
+  --border-default #334155  (slate-700)  — card border
+  --border-strong  #475569  (slate-600)  — focused / active
+
+Risk palette (color + icon, never color alone)
+  --risk-low      #22C55E   (green-500)  — safe to clean
+  --risk-medium   #F59E0B   (amber-500)  — redownload required
+  --risk-high     #EF4444   (red-500)    — may break projects
+  --risk-manual   #A78BFA   (violet-400) — manual review only
+  --risk-protected #64748B  (slate-500)  — cannot select
+  --risk-unsupported #475569             — no rule available
+
+Status dots
+  --status-found   #22C55E
+  --status-missing #64748B
+  --status-failed  #EF4444
+  --status-running #3B82F6  (blue-500)
+  --status-success #22C55E
+  --status-skipped #F59E0B
+
+Accent
+  --accent-primary #22C55E  — primary CTA, selected checkbox
+  --accent-hover   #16A34A  — pressed state
+```
+
+### Typography
+
+```
+Display / Headlines    SF Pro Display  (system default on macOS)
+Body / Tables          SF Pro Text     (system default)
+Monospace paths/cmds   JetBrains Mono  (embed or fall back to SF Mono)
+
+Scale
+  --text-xs    11px / 1.4  — table metadata, badges
+  --text-sm    13px / 1.5  — table body, sidebar labels
+  --text-base  15px / 1.6  — panel descriptions
+  --text-lg    17px / 1.4  — section headers
+  --text-xl    22px / 1.3  — overview figures
+  --text-2xl   32px / 1.2  — hero disk size number
+```
+
+### Spacing Scale
+
+```
+2px  micro gap (badge padding)
+4px  tight (row inner gap)
+8px  compact (between label+value)
+12px default inner padding
+16px row padding horizontal
+20px section gap
+24px card padding
+32px major section separation
+```
+
+### Motion
+
+```
+--duration-micro    100ms  — checkbox tick, row hover bg
+--duration-short    150ms  — tooltip appear, badge color change
+--duration-default  200ms  — drawer open, expand row
+--duration-long     300ms  — progress bar fill, scan animation
+easing              ease-out for entrances, ease-in-out for transitions
+```
+
+---
+
+## 2. Component Catalog
+
+### 2.1 Risk Badge
+
+```
+┌──────────────┐
+│ ● Low Risk   │   pill, 11px, --risk-low fill at 15% opacity, colored dot
+└──────────────┘
+```
+
+States and colors:
+
+| Label        | Dot color      | Background        |
+|--------------|----------------|-------------------|
+| Low Risk     | #22C55E        | #22C55E1A         |
+| Medium Risk  | #F59E0B        | #F59E0B1A         |
+| High Risk    | #EF4444        | #EF44441A         |
+| Manual Review| #A78BFA        | #A78BFA1A         |
+| Protected    | #64748B        | #64748B1A         |
+| Unsupported  | #475569        | #4755691A         |
+
+Rules:
+- Never use color alone — always pair dot + text label
+- High Risk badge adds a `!` icon prefix: `⚠ High Risk`
+- Protected adds a lock icon: `🔒 Protected` (use SF Symbol `lock.fill`)
+
+### 2.2 Storage Item Row (Collapsed)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ☑  Xcode DerivedData              Xcode/iOS    2.4 GB    ● Low Risk    ›    │
+│    Can be rebuilt automatically. Next build may be slower.                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Column layout:
+
+```
+[checkbox 20px] [name+description flex-1] [toolchain 120px] [size 72px right-align] [badge 96px] [chevron 16px]
+```
+
+Interaction:
+- Hover: `--bg-elevated` background, 100ms transition
+- Click chevron → expand detail (200ms slide down)
+- Click checkbox → toggle selection if not protected
+- Protected item: checkbox replaced by `lock` SF Symbol, row slightly dimmed
+
+### 2.3 Storage Item Row (Expanded)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ☑  Xcode DerivedData              Xcode/iOS    2.4 GB    ● Low Risk    ∨    │
+│    Can be rebuilt automatically. Next build may be slower.                  │
+│    ─────────────────────────────────────────────────────────────────        │
+│    Path         ~/Library/Developer/Xcode/DerivedData          [Copy] [→]   │
+│    Generated by Xcode — build index and compiled object cache               │
+│    Cleanup      Deleted by DevStorage Doctor (rm -rf)                       │
+│    Rebuild      First build slower (index rebuilt from source)              │
+│    Command      rm -rf ~/Library/Developer/Xcode/DerivedData               │
+│    Exceptions   PermissionDenied if Full Disk Access not granted            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Path row: monospace font, truncated with `…` in center, Copy + Reveal buttons on hover.
+
+### 2.4 Section Header (Toolchain Group)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [icon] Xcode / iOS                     3 items · 4.1 GB · 2 selected   ∨  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+- Click header collapses/expands all rows in section
+- Badge shows count + total size
+- Bold when any item selected in group
+
+### 2.5 Disk Pressure Summary Bar
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  500 GB Macintosh HD                                                        │
+│                                                                             │
+│  [████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]      │
+│   Used 214 GB                    Available 286 GB                           │
+│                                                                             │
+│  Low Risk Recoverable    │ Medium Risk    │ Manual Review                   │
+│  ▓▓▓▓ 8.3 GB             │ ▒▒ 2.1 GB      │ ░ 14 GB                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Progress bar segments:
+- Solid fill: used space (slate-600)
+- Green tint overlay: low-risk recoverable
+- Amber tint overlay: medium-risk recoverable
+- Violet tint: manual-review zone
+
+States: `healthy` (no warning), `low` (< 15% free, amber label), `critical` (< 5% free, red label).
+
+### 2.6 Cleanup Plan Panel (Right Rail)
+
+```
+┌──────────────────────────┐
+│  Cleanup Plan            │
+│  ──────────────────────  │
+│  5 items selected        │
+│  Estimated recovery      │
+│  ┌────────────────────┐  │
+│  │     6.4 GB         │  │
+│  └────────────────────┘  │
+│                          │
+│  Risk breakdown          │
+│  ● Low      4 items      │
+│  ● Medium   1 item       │
+│                          │
+│  Excluded (protected)    │
+│  2 items not included    │
+│                          │
+│  ─────────────────────   │
+│  [Generate Plan]  ←CTA   │
+└──────────────────────────┘
+```
+
+States:
+- **Empty**: "Select items to build a plan" with muted illustration
+- **Ready**: shows breakdown and CTA
+- **Blocked**: shows exception warning, CTA disabled with explanation
+
+### 2.7 Exception Row
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ⚠  PermissionDenied                                              [Copy]     │
+│    ~/Library/Developer/CoreSimulator/Devices/...                            │
+│    Operation: measure                                                       │
+│    Grant Full Disk Access in System Settings → Privacy & Security.          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.8 Sidebar Item
+
+```
+  [SF Symbol]  Overview               ← active: accent left border + bg-elevated
+  [SF Symbol]  Xcode / iOS
+  [SF Symbol]  Android / Gradle
+               ...
+  ──────────────────
+  [SF Symbol]  Reports
+  [SF Symbol]  Settings
+```
+
+Active state: 2px left accent bar (--accent-primary), `--bg-elevated` fill, `--text-primary` label.
+Inactive: `--text-secondary` label, no background.
+
+---
+
+## 3. Screen Wireframes
+
+### Screen 0: First Launch — Welcome & Permissions
+
+Shown once on first launch, before any scan.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│                                                                                 │
+│                     [App Icon 64px]                                             │
+│                     DevStorage Doctor                                           │
+│                     ─────────────────────────────────                          │
+│                     Measure your development storage.                           │
+│                     Nothing is deleted until you confirm.                       │
+│                                                                                 │
+│                     ┌─────────────────────────────────────┐                    │
+│                     │  Full Disk Access   ● Required       │                    │
+│                     │  Needed to measure protected paths.  │                    │
+│                     │  [Open System Settings]              │                    │
+│                     └─────────────────────────────────────┘                    │
+│                                                                                 │
+│                     ┌─────────────────────────────────────┐                    │
+│                     │  Flutter Project Roots   Optional    │                    │
+│                     │  Add folders to scan project         │                    │
+│                     │  artifacts alongside global caches.  │                    │
+│                     │  [Add Folder…]   /repo/myapp  [✕]    │                    │
+│                     └─────────────────────────────────────┘                    │
+│                                                                                 │
+│                     [Start Scan]                                                │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Notes:
+- Full Disk Access row shows a ✓ green check once granted (poll every 2s)
+- "Start Scan" button disabled until Full Disk Access is granted
+- Project roots are optional — user can skip and add later in Settings
+- No further wizard steps; this is the only gate
+
+---
+
+### Screen 1: Scan Overview (Main Window)
+
+```
+┌──────────┬────────────────────────────────────────────────┬────────────────┐
+│ Sidebar  │  Toolbar                                        │ Plan Panel     │
+│          ├────────────────────────────────────────────────┤                │
+│ Overview │  [Disk Pressure Summary Bar]                    │ Cleanup Plan   │
+│ ─────── │                                                  │ ─────────────  │
+│ Xcode/  │  Results  ─────────────────────────────────────  │ 5 items        │
+│   iOS   │                                                  │ 6.4 GB est.    │
+│ Android │  [icon] Xcode / iOS       3 items · 4.1 GB  ∨  │                 │
+│ Flutter │  ┌────────────────────────────────────────────┐  │ ● Low    4     │
+│ CocoaPods│  │ ☑  DerivedData        2.4 GB ● Low Risk › │  │ ● Medium 1     │
+│ Node    │  │ ☑  NewDerivedData     1.5 GB ● Low Risk › │  │                │
+│ Harmony │  │ □  Simulators         0.2 GB ● Low Risk › │  │ Protected: 2   │
+│ Manual  │  └────────────────────────────────────────────┘  │                │
+│ ─────── │                                                  │ ─────────────  │
+│ Reports │  [icon] Android / Gradle  1 item  · 1.2 GB  ∨  │[Generate Plan] │
+│ Settings│  ┌────────────────────────────────────────────┐  │                │
+│          │  │ □  Gradle caches      1.2 GB ● Medium   › │  └────────────────┘
+│          │  └────────────────────────────────────────────┘
+│          │
+│          │  [icon] Flutter / Dart / FVM  5 items · 3.8 GB  ∨
+│          │  ┌────────────────────────────────────────────┐
+│          │  │ □  Dart pub hosted    1.1 GB ● Medium   › │
+│          │  │ □  Dart pub git         0.2 GB ● Medium   › │
+│          │  │ □  FVM SDK versions   2.1 GB ● High     › │
+│          │  │ □  Flutter build/app  0.3 GB ● Medium   › │
+│          │  │ —  Package outputs    0.1 GB ● Manual   › │  ← cannot select
+│          │  └────────────────────────────────────────────┘
+│          │
+│          │  [Rescan]  Last scan: 14:32 today
+└──────────┴────────────────────────────────────────────────────────────────────┘
+```
+
+Toolbar buttons: `[Scan]` / `[Rescan]` — left side. `[Add Project Root…]` — center. Window title: "DevStorage Doctor".
+
+---
+
+### Screen 2: Stack Detail (Sidebar selection)
+
+```
+┌──────────┬────────────────────────────────────────────────────────────────────┐
+│ Sidebar  │  Flutter / Dart / FVM                              5 items · 3.8 GB│
+│          │  ─────────────────────────────────────────────────────────────     │
+│ > Flutter│                                                                    │
+│          │  Global Caches                                                     │
+│          │  ┌──────────────────────────────────────────────────────────────┐  │
+│          │  │ □  Dart pub hosted cache                                     │  │
+│          │  │    ~/.pub-cache/hosted                1.1 GB  ● Medium Risk  │  │
+│          │  │    Can be rebuilt — packages redownloaded on next pub get    │  │
+│          │  │                                               [Copy] [→]     │  │
+│          │  ├──────────────────────────────────────────────────────────────┤  │
+│          │  │ □  FVM SDK versions                                          │  │
+│          │  │    ~/fvm/versions                     2.1 GB  ● High Risk ›  │  │
+│          │  └──────────────────────────────────────────────────────────────┘  │
+│          │                                                                    │
+│          │  Project Roots                                                     │
+│          │  ┌──────────────────────────────────────────────────────────────┐  │
+│          │  │  /repo/myapp                                     [Add Root]  │  │
+│          │  │  ┌──────────────────────────────────────────────────────┐    │  │
+│          │  │  │ □  build/              0.3 GB  ● Medium Risk       › │    │  │
+│          │  │  │ □  .dart_tool/           8 MB  ● Medium Risk       › │    │  │
+│          │  │  │ □  ios/Pods/           0.5 GB  ● Medium Risk       › │    │  │
+│          │  │  │ —  build/app/outputs/   14 MB  ● Manual Review     › │    │  │
+│          │  │  └──────────────────────────────────────────────────────┘    │  │
+│          │  └──────────────────────────────────────────────────────────────┘  │
+└──────────┴────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Screen 3: Cleanup Plan Drawer (slide in from right or bottom sheet)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Cleanup Plan                                          [Back to Results]    │
+│  ────────────────────────────────────────────────────────────────────────   │
+│  Expected recovery   6.4 GB                                                 │
+│  Items               5 selected                                              │
+│  Risk breakdown      Low ×4  ·  Medium ×1                                   │
+│  Protected/excluded  2 items not included                                   │
+│                                                                             │
+│  Actions to run                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Delete Xcode DerivedData                          ● Low    2.4 GB  │   │
+│  │  ~/Library/Developer/Xcode/DerivedData                              │   │
+│  │  Impact: First build slower. Possible: PermissionDenied             │   │
+│  ├─────────────────────────────────────────────────────────────────────┤   │
+│  │  Delete Xcode NewDerivedData                       ● Low    1.5 GB  │   │
+│  │  ~/Library/Developer/Xcode/NewDerivedData                           │   │
+│  │  Impact: First build slower. Possible: PermissionDenied             │   │
+│  ├─────────────────────────────────────────────────────────────────────┤   │
+│  │  Clear Dart pub hosted cache                   ● Medium    1.1 GB   │   │
+│  │  ~/.pub-cache/hosted                                                 │   │
+│  │  Impact: Next pub get redownloads packages.                          │   │
+│  │  ⚠ Requires network on next Flutter build                           │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  Warnings                                                                   │
+│  ⚠  1 item requires network to rebuild (Dart pub hosted cache)             │
+│                                                                             │
+│  [Copy Plan]                         [Cancel]   [Confirm Cleanup →]        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Screen 4: Confirmation Sheet (modal, proportional to risk)
+
+**Low-risk only:**
+```
+┌─────────────────────────────────────────────────────┐
+│  Confirm Cleanup                                    │
+│  ─────────────────────────────────────────────────  │
+│  4 items · 3.9 GB expected recovery                 │
+│  All selected items are low risk.                   │
+│                                                     │
+│  This cleanup will not delete source projects,      │
+│  active simulators, or current FVM SDKs.            │
+│                                                     │
+│  [Cancel]                     [Start Cleanup →]     │
+└─────────────────────────────────────────────────────┘
+```
+
+**With medium-risk items — requires checkbox acknowledgment:**
+```
+┌─────────────────────────────────────────────────────┐
+│  Confirm Cleanup                                    │
+│  ─────────────────────────────────────────────────  │
+│  5 items · 6.4 GB expected recovery                 │
+│  Includes 1 medium-risk item.                       │
+│                                                     │
+│  ☐  I understand that clearing Dart pub hosted      │
+│     cache requires package managers to download     │
+│     dependencies again.                             │
+│                                                     │
+│  [Cancel]             [Start Cleanup →]  ← disabled │
+│                         until box checked           │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+### Screen 5: Execution Progress
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Cleaning up…                                       3 of 5 items done       │
+│  ────────────────────────────────────────────────────────────────────────   │
+│                                                                             │
+│  [████████████████████████████░░░░░░░░░░░░░░░░░░░░] 60%                    │
+│  Estimated release: 3.9 GB / 6.4 GB                                         │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ✓  Xcode DerivedData deleted                           2.4 GB      │   │
+│  │  ✓  Xcode NewDerivedData deleted                        1.5 GB      │   │
+│  │  ✓  Dart pub hosted cache cleared                       1.1 GB      │   │
+│  │  ⟳  Flutter build directory…                                        │   │
+│  │  ○  FVM SDK versions                                    pending      │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  [Stop]  ← stops after current item completes                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Item status icons: `✓` success, `⟳` running (animated), `○` pending, `✕` failed, `→` skipped.
+
+---
+
+### Screen 6: Cleanup Report
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Cleanup Complete                                                           │
+│  ────────────────────────────────────────────────────────────────────────   │
+│                                                                             │
+│   ┌───────────────┐  ┌────────────┐  ┌───────────┐  ┌──────────────────┐  │
+│   │  6.1 GB       │  │  4 done    │  │  1 skipped │  │  0 exceptions    │  │
+│   │  Released     │  │            │  │            │  │                  │  │
+│   └───────────────┘  └────────────┘  └───────────┘  └──────────────────┘  │
+│                                                                             │
+│  Completed                                                                  │
+│  ✓  Xcode DerivedData              2.4 GB                                  │
+│  ✓  Xcode NewDerivedData           1.5 GB                                  │
+│  ✓  Dart pub hosted cache          1.1 GB                                  │
+│  ✓  Flutter build directory        0.3 GB  (estimated, measured before)    │
+│                                                                             │
+│  Skipped (protected)                                                        │
+│  🔒  FVM SDK versions — active project uses Flutter 3.27.1                 │
+│                                                                             │
+│  Manual Recommendations                                                     │
+│  →  Package outputs at /repo/myapp/build/app/outputs — review before       │
+│     deleting (14 MB, may contain QA or release builds)                     │
+│                                                                             │
+│  [Copy Report]   [Reveal Failed Paths]   [Rescan]        [Done]            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Screen 7: Settings
+
+```
+┌──────────┬────────────────────────────────────────────────────────────────────┐
+│ Sidebar  │  Settings                                                          │
+│          │  ─────────────────────────────────────────────────────────────     │
+│ Settings │                                                                    │
+│          │  Scanning                                                          │
+│          │  ┌──────────────────────────────────────────────────────────────┐  │
+│          │  │  Include medium-risk items in plan by default    [OFF]       │  │
+│          │  │  Protect current project SDKs                   [ON ]        │  │
+│          │  │  Show command previews in item detail            [ON ]        │  │
+│          │  └──────────────────────────────────────────────────────────────┘  │
+│          │                                                                    │
+│          │  Flutter Project Roots                                             │
+│          │  ┌──────────────────────────────────────────────────────────────┐  │
+│          │  │  /Users/dev/repos/myapp                           [Remove]   │  │
+│          │  │  /Users/dev/repos/another_app                     [Remove]   │  │
+│          │  │  [Add Folder…]                                               │  │
+│          │  └──────────────────────────────────────────────────────────────┘  │
+│          │                                                                    │
+│          │  Custom Scan Paths (manual review only)                            │
+│          │  ┌──────────────────────────────────────────────────────────────┐  │
+│          │  │  No custom paths added.                                      │  │
+│          │  │  [Add Folder…]                                               │  │
+│          │  └──────────────────────────────────────────────────────────────┘  │
+│          │                                                                    │
+│          │  Permissions                                                       │
+│          │  ┌──────────────────────────────────────────────────────────────┐  │
+│          │  │  Full Disk Access   ✓ Granted          [Open System Settings]│  │
+│          │  └──────────────────────────────────────────────────────────────┘  │
+└──────────┴────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Microinteractions
+
+### Scan Animation (while scanning)
+- Sidebar item "Overview" shows a pulsing dot (--accent-primary, opacity 0.5→1→0.5, 1.2s loop)
+- Each toolchain group header shows a subtle shimmer on the size value while being measured
+- Progress indicator in toolbar: indeterminate while scanning, disappears when done
+- Row size values count up from 0 as results arrive (300ms counter animation)
+
+### Checkbox Selection
+- Check tick draws in 100ms (strokeEnd animation from 0→1)
+- Plan panel "Estimated recovery" figure updates immediately with +/- diff in green/red (fades after 800ms)
+- If a High Risk item is checked without expanding detail first: brief shake animation + tooltip "Expand to review impact first"
+
+### Row Expansion
+- Chevron rotates 90° (200ms, ease-out)
+- Detail panel slides down (200ms, ease-out)
+- Path row: Copy and Reveal buttons fade in only on hover (100ms)
+
+### Disk Bar
+- On scan complete: segments animate in left-to-right (400ms, staggered 50ms per segment)
+- Number values count up from 0 during animation
+
+### Cleanup Progress
+- Progress bar fills smoothly using a transition on width (not stepping)
+- Completed item row gets a green left border (2px, instant) + `✓` icon fades in
+
+---
+
+## 5. Empty & Error States
+
+### No Toolchain Found (group level)
+```
+[icon] Xcode / iOS                                0 items
+
+  No Xcode or iOS Simulator storage was detected.
+  This may mean Xcode has not been used on this Mac,
+  or paths are in a non-standard location.
+```
+
+### Full Disk Access Not Granted
+- Banner at top of results (amber, dismissible):
+  ```
+  ⚠  Full Disk Access is not granted.
+     Some paths could not be measured.  [Open System Settings]
+  ```
+
+### Scan Failed Entirely
+```
+  [icon]
+
+  Scan could not complete.
+
+  DevStorage Doctor could not read the file system.
+  Grant Full Disk Access and try again.
+
+  [Open System Settings]          [Retry Scan]
+```
+
+### Empty Plan Panel
+```
+  ┌──────────────────────────┐
+  │  No items selected.      │
+  │                          │
+  │  Check items in the      │
+  │  results list to build   │
+  │  a cleanup plan.         │
+  └──────────────────────────┘
+```
+
+---
+
+## 6. Window Sizing & Responsive Behavior
+
+| Window width | Behavior                                              |
+|-------------|-------------------------------------------------------|
+| ≥ 1200px    | Sidebar + main + plan panel (three column)            |
+| 900–1199px  | Sidebar + main; plan panel collapses to bottom bar    |
+| < 900px     | Sidebar collapses to icon-only (macOS split view)     |
+
+Minimum window size: 780 × 520px.
+
+Bottom bar (narrow mode):
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  5 items · 6.4 GB est.   ● Low ×4  ● Medium ×1          [Generate Plan]    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Accessibility Requirements (Supplement)
+
+- All SF Symbols must include `accessibilityLabel` on the SwiftUI view
+- Risk badges: never convey risk through color alone — text label always present
+- Row checkboxes: accessible via keyboard (Space to toggle), VoiceOver reads "Xcode DerivedData, 2.4 gigabytes, low risk, selected"
+- Disk bar: `accessibilityValue` = "214 gigabytes used of 500 gigabytes, 8.3 gigabytes low-risk recoverable"
+- Progress screen: `accessibilityLiveRegion` on item status updates
+- Command preview blocks: selectable, VoiceOver reads full command string
+- `prefers-reduced-motion`: disable count-up animations, disable shimmer, use instant transitions
+
+---
+
+## 8. SwiftUI Architecture Sketch
+
+```
+DevStorageDoctorApp
+└── ContentView (NavigationSplitView)
+    ├── SidebarView
+    │   └── List of NavigationLink items
+    ├── DetailView (switches on sidebar selection)
+    │   ├── OverviewView
+    │   │   ├── DiskPressureSummaryView
+    │   │   └── ScanResultListView
+    │   │       ├── ToolchainSectionView (per stack)
+    │   │       │   └── StorageItemRowView (expandable)
+    │   │       └── EmptyStateView
+    │   ├── StackDetailView (per toolchain)
+    │   └── ReportsView
+    └── TrailingColumnView (CleanupPlanPanelView)
+        └── CleanupPlanPanelView
+```
+
+Key `@Observable` / `@EnvironmentObject` state objects:
+- `ScanState` — results, scan status, last scan time
+- `SelectionState` — selected item IDs
+- `CleanupPlanState` — plan items, estimated recovery
+- `SettingsStore` — persisted user preferences
+
+---
+
+## 9. Next Design Work (Backlog)
+
+- [ ] Onboarding tooltip overlay (coach marks on first scan)
+- [ ] Menu bar companion widget (disk pressure gauge)
+- [ ] Team export report format (Markdown + JSON)
+- [ ] Dark/light mode toggle (light mode palette needs definition)
+- [ ] App icon design brief
+- [ ] Notification design (post-cleanup summary notification)
